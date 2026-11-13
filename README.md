@@ -37,10 +37,10 @@ Copy the environment template and start PostgreSQL:
 
 ```bash
 $ cp .env.example .env
-$ docker compose up -d postgres
+$ docker compose up -d
 ```
 
-The API reads runtime settings through NestJS `ConfigModule`. Start the server with `pnpm start:dev`, then use `GET /health` to verify the server and PostgreSQL connection. Swagger UI is available at `http://localhost:3000/docs`.
+The API reads runtime settings through NestJS `ConfigModule`. Configure S3-compatible private storage and the NEAR testnet contract variables before starting the server. Redis backs durable BullMQ jobs for scans, notifications and chain reconciliation. Start the server with `pnpm start:dev`, then use `GET /health` to verify the server and PostgreSQL connection. Swagger UI is available at `http://localhost:3000/docs`.
 
 ## Compile and run the project
 
