@@ -50,7 +50,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Configure CORS, trusted proxy policy, graceful shutdown and structured request/error logging.
   - Done when: only configured origins receive credentialed responses, shutdown closes cleanly, and request IDs are present in logs.
   - Failure: FAILED — <UTC timestamp> — cross-origin or shutdown policy incorrect — security/availability risk — <owner> — correct bootstrap configuration and add integration coverage.
-- [ ] Configure event emitter, scheduler and BullMQ/Redis queues for notifications, malware scans, chain reconciliation, aggregation and retryable delivery.
+- [x] Configure event emitter, scheduler and BullMQ/Redis queues for notifications, malware scans, chain reconciliation, aggregation and retryable delivery.
   - Done when: producers and consumers use named queues, retries/backoff/dead-letter behavior is tested, and no job performs an unbounded retry.
   - Failure: FAILED — <UTC timestamp> — job is lost, duplicated or retries indefinitely — asynchronous consistency risk — <owner> — fix idempotency/retry policy and replay safely.
 - [ ] Configure a transactional outbox for domain events that leave PostgreSQL.
