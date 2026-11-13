@@ -29,6 +29,17 @@ const environmentSchema = z.object({
   NEAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   NEAR_RPC_URL: z.url(),
   NEAR_CONTRACT_ID: z.string().min(1),
+  NEAR_CONTRACT_VERSION: z
+    .string()
+    .regex(/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
+    .default('0.1.0'),
+  NEAR_RPC_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(3),
+  NEAR_RPC_RETRY_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(5_000)
+    .default(100),
   OBSERVE_APP_KEY: z.string().optional().transform((value) => value || undefined),
   OBSERVE_APP_SECRET: z.string().optional().transform((value) => value || undefined),
 });
@@ -101,6 +112,9 @@ export const nearConfig = registerAs('near', () => {
     network: environment.NEAR_NETWORK,
     rpcUrl: environment.NEAR_RPC_URL,
     contractId: environment.NEAR_CONTRACT_ID,
+    contractVersion: environment.NEAR_CONTRACT_VERSION,
+    maxAttempts: environment.NEAR_RPC_MAX_ATTEMPTS,
+    retryDelayMs: environment.NEAR_RPC_RETRY_DELAY_MS,
   };
 });
 
