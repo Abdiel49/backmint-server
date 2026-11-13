@@ -55,6 +55,19 @@ const environmentSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  OBJECT_STORAGE_SIGNED_URL_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(900)
+    .default(300),
+  OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION: z
+    .enum(['AES256', 'aws:kms'])
+    .default('AES256'),
+  OBJECT_STORAGE_KMS_KEY_ID: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
   NEAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   NEAR_RPC_URL: z.url(),
   NEAR_CONTRACT_ID: z.string().min(1),
@@ -162,6 +175,9 @@ export const objectStorageConfig = registerAs('objectStorage', () => {
     accessKey: environment.OBJECT_STORAGE_ACCESS_KEY,
     secretKey: environment.OBJECT_STORAGE_SECRET_KEY,
     forcePathStyle: environment.OBJECT_STORAGE_FORCE_PATH_STYLE,
+    signedUrlTtlSeconds: environment.OBJECT_STORAGE_SIGNED_URL_TTL_SECONDS,
+    serverSideEncryption: environment.OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION,
+    kmsKeyId: environment.OBJECT_STORAGE_KMS_KEY_ID,
   };
 });
 
