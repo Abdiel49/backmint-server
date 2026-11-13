@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { type ConfigType } from '@nestjs/config';
 import { objectStorageConfig } from '../../config/configuration.js';
 import { OBJECT_STORAGE_CLIENT } from './object-storage.constants.js';
+import { ObjectStorageService } from './object-storage.service.js';
 
 @Module({
   providers: [
@@ -20,7 +21,8 @@ import { OBJECT_STORAGE_CLIENT } from './object-storage.constants.js';
           },
         }),
     },
+    ObjectStorageService,
   ],
-  exports: [OBJECT_STORAGE_CLIENT],
+  exports: [OBJECT_STORAGE_CLIENT, ObjectStorageService],
 })
 export class ObjectStorageModule {}
