@@ -59,7 +59,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Configure private S3-compatible storage with encryption, bucket policy, restricted credentials, checksum metadata and signed URL generation.
   - Done when: a service can issue scoped, short-lived upload/download URLs without exposing bucket credentials to clients.
   - Failure: FAILED — <UTC timestamp> — object access is public or credentials leak — sensitive-evidence exposure — <owner> — revoke credentials, repair policy and audit access.
-- [ ] Configure the NEAR RPC adapter for testnet, contract ID/version configuration, finality-aware queries and resilient retries.
+- [x] Configure the NEAR RPC adapter for testnet, contract ID/version configuration, finality-aware queries and resilient retries.
   - Done when: the adapter reads network identity, contract state and transaction outcome using configured testnet endpoints.
   - Failure: FAILED — <UTC timestamp> — RPC/contract configuration mismatch — chain state cannot be trusted — <owner> — correct network, contract artifact or provider settings.
 

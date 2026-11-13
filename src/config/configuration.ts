@@ -9,6 +9,10 @@ const environmentSchema = z.object({
   CORS_ORIGINS: z.string().default('http://localhost:3001'),
   RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
+  UPLOAD_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
+  FINANCIAL_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
+  PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(30),
   DATABASE_HOST: z.string().min(1),
   DATABASE_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
   DATABASE_NAME: z.string().min(1),
@@ -62,6 +66,19 @@ const environmentSchema = z.object({
     .string()
     .optional()
     .transform((value) => value || undefined),
+  NEAR_CONTRACT_VERSION: z
+    .string()
+    .regex(/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
+    .default('0.1.0'),
+  NEAR_RPC_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(3),
+  NEAR_RPC_RETRY_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(5_000)
+    .default(100),
+  OBSERVE_APP_KEY: z.string().optional().transform((value) => value || undefined),
+  OBSERVE_APP_SECRET: z.string().optional().transform((value) => value || undefined),
 });
 
 type Environment = z.infer<typeof environmentSchema>;
@@ -89,6 +106,10 @@ export const appConfig = registerAs('app', () => {
     ),
     rateLimitTtl: environment.RATE_LIMIT_TTL_MS,
     rateLimitMaxRequests: environment.RATE_LIMIT_MAX_REQUESTS,
+    authenticationRateLimitMaxRequests: environment.AUTH_RATE_LIMIT_MAX_REQUESTS,
+    uploadRateLimitMaxRequests: environment.UPLOAD_RATE_LIMIT_MAX_REQUESTS,
+    financialRateLimitMaxRequests: environment.FINANCIAL_RATE_LIMIT_MAX_REQUESTS,
+    publicEmbedRateLimitMaxRequests: environment.PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS,
   };
 });
 
@@ -151,6 +172,9 @@ export const nearConfig = registerAs('near', () => {
     network: environment.NEAR_NETWORK,
     rpcUrl: environment.NEAR_RPC_URL,
     contractId: environment.NEAR_CONTRACT_ID,
+    contractVersion: environment.NEAR_CONTRACT_VERSION,
+    maxAttempts: environment.NEAR_RPC_MAX_ATTEMPTS,
+    retryDelayMs: environment.NEAR_RPC_RETRY_DELAY_MS,
   };
 });
 

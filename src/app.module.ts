@@ -66,8 +66,29 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       useFactory: (app: ConfigType<typeof appConfig>) => ({
         throttlers: [
           {
+            name: 'default',
             ttl: app.rateLimitTtl,
             limit: app.rateLimitMaxRequests,
+          },
+          {
+            name: 'authentication',
+            ttl: app.rateLimitTtl,
+            limit: app.authenticationRateLimitMaxRequests,
+          },
+          {
+            name: 'upload',
+            ttl: app.rateLimitTtl,
+            limit: app.uploadRateLimitMaxRequests,
+          },
+          {
+            name: 'financial',
+            ttl: app.rateLimitTtl,
+            limit: app.financialRateLimitMaxRequests,
+          },
+          {
+            name: 'publicEmbed',
+            ttl: app.rateLimitTtl,
+            limit: app.publicEmbedRateLimitMaxRequests,
           },
         ],
       }),
