@@ -15,9 +15,11 @@ import {
   nearConfig,
   objectStorageConfig,
   observeConfig,
+  queuesConfig,
   redisConfig,
 } from './config/configuration.js';
 import { HealthModule } from './health/health.module.js';
+import { AsyncQueuesModule } from './infrastructure/async-queues/async-queues.module.js';
 import { NearModule } from './infrastructure/near/near.module.js';
 import { ObjectStorageModule } from './infrastructure/object-storage/object-storage.module.js';
 
@@ -32,6 +34,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         appConfig,
         databaseConfig,
         redisConfig,
+        queuesConfig,
         objectStorageConfig,
         nearConfig,
         observeConfig,
@@ -81,6 +84,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
+    AsyncQueuesModule,
     ObjectStorageModule,
     NearModule,
     HealthModule,
