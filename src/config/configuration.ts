@@ -2,7 +2,10 @@ import { registerAs } from '@nestjs/config';
 import { z } from 'zod';
 
 const environmentSchema = z.object({
-  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3001),
+  API_PREFIX: z.string().trim().min(1).default('api'),
+  SWAGGER_PATH: z.string().trim().min(1).default('docs'),
+  SWAGGER_JSON_PATH: z.string().trim().min(1).default('docs/openapi.json'),
   CORS_ORIGINS: z.string().default('http://localhost:3001'),
   RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
@@ -47,6 +50,9 @@ export const appConfig = registerAs('app', () => {
 
   return {
     port: environment.PORT,
+    apiPrefix: environment.API_PREFIX,
+    swaggerPath: environment.SWAGGER_PATH,
+    swaggerJsonPath: environment.SWAGGER_JSON_PATH,
     corsOrigins: environment.CORS_ORIGINS.split(',').map((origin) => origin.trim()),
     rateLimitTtl: environment.RATE_LIMIT_TTL_MS,
     rateLimitMaxRequests: environment.RATE_LIMIT_MAX_REQUESTS,

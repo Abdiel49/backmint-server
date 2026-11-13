@@ -13,6 +13,7 @@ async function bootstrap() {
     origin: configService.getOrThrow<string[]>('app.corsOrigins'),
     credentials: true,
   });
+  app.setGlobalPrefix(configService.getOrThrow<string>('app.apiPrefix'));
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Blackmint API')
     .setDescription('Blackmint server API documentation')
@@ -20,7 +21,14 @@ async function bootstrap() {
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
 
-  SwaggerModule.setup('docs', app, documentFactory);
+  SwaggerModule.setup(
+    configService.getOrThrow<string>('app.swaggerPath'),
+    app,
+    documentFactory,
+    {
+      jsonDocumentUrl: configService.getOrThrow<string>('app.swaggerJsonPath'),
+    },
+  );
 
   await app.listen(configService.getOrThrow<number>('app.port'));
 }
