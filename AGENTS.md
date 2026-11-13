@@ -1,5 +1,14 @@
 # AGENTS.md
 
+## Project workflow and conventions
+
+- Start every feature from the `develop` branch and implement it on a dedicated feature branch.
+- Commit after each completed feature. When the feature is complete, open a pull request to the GitHub repository targeting `develop`.
+- Use the project's general skills when they apply. Suggestions for additional skills are welcome when they clearly improve the work.
+- Write all code in English.
+- Do not add code comments unless the task explicitly requests them.
+- Document every API endpoint thoroughly with Swagger, including realistic examples for request payloads and relevant responses.
+
 ## NestJS
 
 This app's version of NestJS is likely newer than what you know. https://docs.nestjs.com/llms.txt indexes its documentation, with a markdown page per chapter.
