@@ -31,6 +31,17 @@
 $ pnpm install
 ```
 
+## Local PostgreSQL database
+
+Copy the environment template and start PostgreSQL:
+
+```bash
+$ cp .env.example .env
+$ docker compose up -d postgres
+```
+
+The API reads runtime settings through NestJS `ConfigModule`. Start the server with `pnpm start:dev`, then use `GET /health` to verify the server and PostgreSQL connection. Swagger UI is available at `http://localhost:3000/docs`.
+
 ## Compile and run the project
 
 ```bash
