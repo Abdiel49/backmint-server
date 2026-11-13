@@ -1,11 +1,25 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, type ConfigType } from '@nestjs/config';
 import { createObserveModule } from '@nestjs/observe';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { appConfig, databaseConfig, observeConfig } from './config/configuration.js';
+import {
+  appConfig,
+  databaseConfig,
+  nearConfig,
+  objectStorageConfig,
+  observeConfig,
+  redisConfig,
+} from './config/configuration.js';
 import { HealthModule } from './health/health.module.js';
+import { NearModule } from './infrastructure/near/near.module.js';
+import { ObjectStorageModule } from './infrastructure/object-storage/object-storage.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -14,7 +28,14 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
-      load: [appConfig, databaseConfig, observeConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        redisConfig,
+        objectStorageConfig,
+        nearConfig,
+        observeConfig,
+      ],
     }),
     ObserveModule.forRootAsync({
       inject: [observeConfig.KEY],
@@ -37,9 +58,40 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         synchronize: false,
       }),
     }),
+    ThrottlerModule.forRootAsync({
+      inject: [appConfig.KEY],
+      useFactory: (app: ConfigType<typeof appConfig>) => ({
+        throttlers: [
+          {
+            ttl: app.rateLimitTtl,
+            limit: app.rateLimitMaxRequests,
+          },
+        ],
+      }),
+    }),
+    BullModule.forRootAsync({
+      inject: [redisConfig.KEY],
+      useFactory: (redis: ConfigType<typeof redisConfig>) => ({
+        connection: {
+          host: redis.host,
+          port: redis.port,
+          password: redis.password,
+        },
+      }),
+    }),
+    EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
+    ObjectStorageModule,
+    NearModule,
     HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

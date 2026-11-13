@@ -8,6 +8,11 @@ async function bootstrap() {
     instrument: ObserveInstrument,
   });
   const configService = app.get(ConfigService);
+  app.enableShutdownHooks();
+  app.enableCors({
+    origin: configService.getOrThrow<string[]>('app.corsOrigins'),
+    credentials: true,
+  });
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Blackmint API')
     .setDescription('Blackmint server API documentation')
