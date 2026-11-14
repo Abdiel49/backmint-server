@@ -200,12 +200,14 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Version and validate imported contract interface artifacts from `backmint-contracts`; never execute contract WASM in this server.
   - Done when: server adapter validates expected contract ID, ABI/spec version and network before each operation.
   - Failure: FAILED — <UTC timestamp> — contract interface/network mismatch — unsafe chain interaction — <owner> — disable operations and update verified artifact.
-- [ ] Implement `ChainOperation` with idempotency key, operation type, state version, payload hash, requester, transaction hash, error code and lifecycle.
+- [~] Implement `ChainOperation` with idempotency key, operation type, state version, payload hash, requester, transaction hash, error code and lifecycle.
   - Done when: mutable/financial initiations can return `Pending` and retries reconcile the same operation instead of resubmitting blindly.
   - Failure: FAILED — <UTC timestamp> — operation can duplicate submission — double-payment risk — <owner> — freeze operation type and repair idempotency path.
-- [ ] Implement unsigned transaction intent generation only; require explicit authorized wallet signature for all fund-moving actions.
+- Evidence: `feature/chain-operation-intents` persists versioned operations with requester-scoped idempotency, immutable payload hashes, guarded compare-and-swap transitions and audit events. Identical retries return the original operation; no transaction submission code exists. Agreement binding, automatic retry reconciliation and finality remain pending.
+- [~] Implement unsigned transaction intent generation only; require explicit authorized wallet signature for all fund-moving actions.
   - Done when: backend credentials cannot arbitrarily transfer user funds.
   - Failure: FAILED — <UTC timestamp> — backend can initiate unrestricted user transfer — custody/security incident — <owner> — revoke credentials and disable transaction path.
+- Evidence: unsigned `FunctionCall` intent fields are validated and restricted to the configured NEAR network and contract. The server has no signing key, signer or broadcast path. Authorized API exposure and explicit wallet authorization depend on agreement artifacts and authenticated finance APIs.
 - [ ] Implement agreement registration/initialization on NEAR and finality-aware confirmation.
   - Done when: chain agreement ID/status is persisted only after expected contract, participants and terms hash are verified.
   - Failure: FAILED — <UTC timestamp> — chain agreement mismatches server terms — escrow integrity risk — <owner> — mark operation failed and investigate before retry.
