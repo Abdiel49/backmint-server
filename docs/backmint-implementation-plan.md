@@ -74,7 +74,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Define immutable snapshot/version primitives for published sources, submitted proposals, agreement terms and evidence submissions.
   - Done when: modifying a source cannot mutate a previously submitted or signed snapshot.
   - Failure: FAILED — <UTC timestamp> — historical snapshot changed — consent/audit integrity loss — <owner> — restore immutable versioning and backfill affected records.
-- [ ] Define domain event, audit event, idempotency key and external integration record primitives.
+- [~] Define domain event, audit event, idempotency key and external integration record primitives.
   - Done when: privileged and external side effects carry actor, correlation, causation and idempotency metadata.
   - Failure: FAILED — <UTC timestamp> — side effect lacks traceability/idempotency — reconciliation impossible — <owner> — add metadata and replay protection.
 - [ ] Define authorization primitives for acting organization, membership role, representative authority, resource ownership and explicit grants.
