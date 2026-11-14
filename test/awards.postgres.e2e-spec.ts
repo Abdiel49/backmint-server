@@ -1,4 +1,4 @@
-import { DataSource, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 import dataSource from '../src/database/data-source.js';
 import { AuditEventEntity } from '../src/audit/audit-event.entity.js';
 import { AuditPersistenceService } from '../src/audit/audit-persistence.service.js';
@@ -26,12 +26,6 @@ describe.skipIf(!postgresIntegration)(
     let connection: DataSource;
     let service: AwardsService;
     let evaluations: EvaluationsService;
-    const createdProjectIds: string[] = [];
-    const createdApplicationIds: string[] = [];
-    const createdFundingOfferIds: string[] = [];
-    const createdUserIds: string[] = [];
-    const createdRoundIds: string[] = [];
-    const createdAssignmentIds: string[] = [];
 
     beforeAll(async () => {
       connection = new DataSource({
@@ -59,50 +53,7 @@ describe.skipIf(!postgresIntegration)(
     });
 
     afterAll(async () => {
-      if (connection?.isInitialized) {
-        if (createdProjectIds.length)
-          await connection
-            .getRepository(AwardEntity)
-            .delete({ sourceId: In(createdProjectIds) });
-        if (createdAssignmentIds.length)
-          await connection
-            .getRepository(EvaluationEntity)
-            .delete({ assignmentId: In(createdAssignmentIds) });
-        if (createdRoundIds.length)
-          await connection
-            .getRepository(EvaluationAssignmentEntity)
-            .delete({ roundId: In(createdRoundIds) });
-        if (createdRoundIds.length)
-          await connection
-            .getRepository(EvaluationRoundEntity)
-            .delete({ id: In(createdRoundIds) });
-        if (createdApplicationIds.length)
-          await connection.query(
-            'DELETE FROM "audit_events" WHERE "target_type" = $1 AND "target_id" = ANY($2::varchar[])',
-            ['Application', createdApplicationIds],
-          );
-        if (createdApplicationIds.length)
-          await connection
-            .getRepository(ApplicationEntity)
-            .delete({ id: In(createdApplicationIds) });
-        if (createdAssignmentIds.length)
-          await connection
-            .getRepository(EvaluationAssignmentEntity)
-            .delete({ id: In(createdAssignmentIds) });
-        if (createdFundingOfferIds.length)
-          await connection
-            .getRepository(FundingOfferEntity)
-            .delete({ id: In(createdFundingOfferIds) });
-        if (createdProjectIds.length)
-          await connection
-            .getRepository(ProjectEntity)
-            .delete({ id: In(createdProjectIds) });
-        if (createdUserIds.length)
-          await connection
-            .getRepository(UserEntity)
-            .delete({ id: In(createdUserIds) });
-        await connection.destroy();
-      }
+      if (connection?.isInitialized) await connection.destroy();
     });
 
     async function fixture(input: { maximumAwards: number; budget: string }) {
@@ -122,7 +73,6 @@ describe.skipIf(!postgresIntegration)(
             .getRepository(UserEntity)
             .create({ displayName: `reviewer-${crypto.randomUUID()}` }),
         ]);
-      createdUserIds.push(...users.map((user) => user.id));
       const project = await connection.getRepository(ProjectEntity).save(
         connection.getRepository(ProjectEntity).create({
           ownerUserId: users[0].id,
@@ -148,7 +98,6 @@ describe.skipIf(!postgresIntegration)(
           },
         }),
       );
-      createdProjectIds.push(project.id);
       const applications = await connection
         .getRepository(ApplicationEntity)
         .save(
@@ -170,9 +119,6 @@ describe.skipIf(!postgresIntegration)(
             }),
           ),
         );
-      createdApplicationIds.push(
-        ...applications.map((application) => application.id),
-      );
       const round = await connection.getRepository(EvaluationRoundEntity).save(
         connection.getRepository(EvaluationRoundEntity).create({
           sourceType: 'Project',
@@ -184,7 +130,6 @@ describe.skipIf(!postgresIntegration)(
           createdByUserId: users[0].id,
         }),
       );
-      createdRoundIds.push(round.id);
       const assignments = await connection
         .getRepository(EvaluationAssignmentEntity)
         .save(
@@ -201,11 +146,8 @@ describe.skipIf(!postgresIntegration)(
             }),
           ),
         );
-      createdAssignmentIds.push(
-        ...assignments.map((assignment) => assignment.id),
-      );
       await connection.getRepository(EvaluationEntity).save(
-        assignments.map((assignment, index) =>
+        assignments.map((assignment) =>
           connection.getRepository(EvaluationEntity).create({
             assignmentId: assignment.id,
             version: 1,
@@ -317,7 +259,6 @@ describe.skipIf(!postgresIntegration)(
             .getRepository(UserEntity)
             .create({ displayName: `funder-${crypto.randomUUID()}` }),
         ]);
-      createdUserIds.push(...users.map((user) => user.id));
       const project = await connection.getRepository(ProjectEntity).save(
         connection.getRepository(ProjectEntity).create({
           ownerUserId: users[0].id,
@@ -342,7 +283,6 @@ describe.skipIf(!postgresIntegration)(
           },
         }),
       );
-      createdProjectIds.push(project.id);
       const offer = await connection.getRepository(FundingOfferEntity).save(
         connection.getRepository(FundingOfferEntity).create({
           sourceType: 'Project',
@@ -363,7 +303,6 @@ describe.skipIf(!postgresIntegration)(
           reviewedAt: new Date(),
         }),
       );
-      createdFundingOfferIds.push(offer.id);
       const award = await service.createFromFundingOffer({
         fundingOfferId: offer.id,
         expiresAt: new Date(Date.now() + 60_000),
