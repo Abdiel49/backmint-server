@@ -89,7 +89,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Implement wallet challenge issuance, signature verification, `WalletLink` creation and revocation.
   - Done when: only a verified account owner can link a wallet; reused or expired challenges fail.
   - Failure: FAILED — <UTC timestamp> — wallet control cannot be proven — forged wallet association risk — <owner> — invalidate challenges and repair verification.
-- [ ] Implement `Organization`, unique scoped slug, country, type, legal/informal status, visibility and owner selection.
+- [~] Implement `Organization`, unique scoped slug, country, type, legal/informal status, visibility and owner selection.
   - Done when: duplicate/invalid organizations are rejected and ownership is auditable.
   - Failure: FAILED — <UTC timestamp> — organization uniqueness or owner rule fails — identity collision risk — <owner> — repair constraint and reconcile duplicates.
 - [ ] Implement organization invitations, `OrganizationMembership`, active-pair uniqueness, acceptance and role lifecycle.
