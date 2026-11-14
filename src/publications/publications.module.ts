@@ -25,9 +25,11 @@ import {
 import { EvaluationsService } from '../evaluations/evaluations.service.js';
 import { AwardEntity } from './award.entity.js';
 import { AwardsService } from './awards.service.js';
+import { AuditPersistenceModule } from '../audit/audit-persistence.module.js';
 
 @Module({
   imports: [
+    AuditPersistenceModule,
     TypeOrmModule.forFeature([
       ProjectEntity,
       ProjectVersionEntity,
