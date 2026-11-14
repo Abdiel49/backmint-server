@@ -16,6 +16,7 @@ function createService() {
     getNetworkId: vi.fn(),
     viewAccount: vi.fn(),
     viewTransactionStatus: vi.fn(),
+    viewAccessKeyList: vi.fn(),
   };
 
   return {
@@ -71,6 +72,20 @@ describe('NearRpcService', () => {
       accountId: 'signer.testnet',
       waitUntil: 'FINAL',
     });
+  });
+
+  it('checks a public key against the account access key list', async () => {
+    const { provider, service } = createService();
+    provider.viewAccessKeyList.mockResolvedValue({
+      keys: [{ public_key: { toString: () => 'ed25519:authorized' } }],
+    });
+
+    await expect(
+      service.hasAccessKey('alice.testnet', 'ed25519:authorized'),
+    ).resolves.toBe(true);
+    await expect(
+      service.hasAccessKey('alice.testnet', 'ed25519:other'),
+    ).resolves.toBe(false);
   });
 
   it('retries transient RPC errors only up to the configured limit', async () => {

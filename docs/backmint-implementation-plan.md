@@ -86,7 +86,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [~] Implement `User` and `IdentityProvider` persistence, registration/login/recovery flows, sessions/tokens and account security controls.
   - Done when: authenticated identity is established through a verified provider and session revocation/recovery is tested.
   - Failure: FAILED — <UTC timestamp> — identity/session flow allows impersonation or unrecoverable access — account security risk — <owner> — disable affected flow and remediate.
-- [ ] Implement wallet challenge issuance, signature verification, `WalletLink` creation and revocation.
+- [~] Implement wallet challenge issuance, signature verification, `WalletLink` creation and revocation.
   - Done when: only a verified account owner can link a wallet; reused or expired challenges fail.
   - Failure: FAILED — <UTC timestamp> — wallet control cannot be proven — forged wallet association risk — <owner> — invalidate challenges and repair verification.
 - [~] Implement `Organization`, unique scoped slug, country, type, legal/informal status, visibility and owner selection.
