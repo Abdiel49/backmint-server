@@ -9,6 +9,22 @@ const environmentSchema = z.object({
   CORS_ORIGINS: z.string().default('http://localhost:3001'),
   RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
+  UPLOAD_RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(20),
+  FINANCIAL_RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10),
+  PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30),
   DATABASE_HOST: z.string().min(1),
   DATABASE_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
   DATABASE_NAME: z.string().min(1),
@@ -16,7 +32,10 @@ const environmentSchema = z.object({
   DATABASE_PASSWORD: z.string().min(1),
   REDIS_HOST: z.string().min(1).default('localhost'),
   REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6379),
-  REDIS_PASSWORD: z.string().optional().transform((value) => value || undefined),
+  REDIS_PASSWORD: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
   OBJECT_STORAGE_ENDPOINT: z.url(),
   OBJECT_STORAGE_REGION: z.string().min(1),
   OBJECT_STORAGE_BUCKET: z.string().min(1),
@@ -26,11 +45,41 @@ const environmentSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  OBJECT_STORAGE_SIGNED_URL_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(900)
+    .default(300),
+  OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION: z
+    .enum(['AES256', 'aws:kms'])
+    .default('AES256'),
+  OBJECT_STORAGE_KMS_KEY_ID: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
   NEAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   NEAR_RPC_URL: z.url(),
   NEAR_CONTRACT_ID: z.string().min(1),
-  OBSERVE_APP_KEY: z.string().optional().transform((value) => value || undefined),
-  OBSERVE_APP_SECRET: z.string().optional().transform((value) => value || undefined),
+  NEAR_CONTRACT_VERSION: z
+    .string()
+    .regex(/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
+    .default('0.1.0'),
+  NEAR_RPC_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(3),
+  NEAR_RPC_RETRY_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(5_000)
+    .default(100),
+  OBSERVE_APP_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  OBSERVE_APP_SECRET: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
 });
 
 type Environment = z.infer<typeof environmentSchema>;
@@ -53,9 +102,18 @@ export const appConfig = registerAs('app', () => {
     apiPrefix: environment.API_PREFIX,
     swaggerPath: environment.SWAGGER_PATH,
     swaggerJsonPath: environment.SWAGGER_JSON_PATH,
-    corsOrigins: environment.CORS_ORIGINS.split(',').map((origin) => origin.trim()),
+    corsOrigins: environment.CORS_ORIGINS.split(',').map((origin) =>
+      origin.trim(),
+    ),
     rateLimitTtl: environment.RATE_LIMIT_TTL_MS,
     rateLimitMaxRequests: environment.RATE_LIMIT_MAX_REQUESTS,
+    authenticationRateLimitMaxRequests:
+      environment.AUTH_RATE_LIMIT_MAX_REQUESTS,
+    uploadRateLimitMaxRequests: environment.UPLOAD_RATE_LIMIT_MAX_REQUESTS,
+    financialRateLimitMaxRequests:
+      environment.FINANCIAL_RATE_LIMIT_MAX_REQUESTS,
+    publicEmbedRateLimitMaxRequests:
+      environment.PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS,
   };
 });
 
@@ -91,6 +149,9 @@ export const objectStorageConfig = registerAs('objectStorage', () => {
     accessKey: environment.OBJECT_STORAGE_ACCESS_KEY,
     secretKey: environment.OBJECT_STORAGE_SECRET_KEY,
     forcePathStyle: environment.OBJECT_STORAGE_FORCE_PATH_STYLE,
+    signedUrlTtlSeconds: environment.OBJECT_STORAGE_SIGNED_URL_TTL_SECONDS,
+    serverSideEncryption: environment.OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION,
+    kmsKeyId: environment.OBJECT_STORAGE_KMS_KEY_ID,
   };
 });
 
@@ -101,6 +162,9 @@ export const nearConfig = registerAs('near', () => {
     network: environment.NEAR_NETWORK,
     rpcUrl: environment.NEAR_RPC_URL,
     contractId: environment.NEAR_CONTRACT_ID,
+    contractVersion: environment.NEAR_CONTRACT_VERSION,
+    maxAttempts: environment.NEAR_RPC_MAX_ATTEMPTS,
+    retryDelayMs: environment.NEAR_RPC_RETRY_DELAY_MS,
   };
 });
 
