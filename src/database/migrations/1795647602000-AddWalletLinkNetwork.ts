@@ -1,6 +1,6 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddWalletLinkNetwork1795647600000 implements MigrationInterface {
+export class AddWalletLinkNetwork1795647602000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query('DROP INDEX "UQ_wallet_links_active_account"');
     await queryRunner.query(
