@@ -3552,6 +3552,731 @@
         ]
       }
     },
+    "/api/awards": {
+      "get": {
+        "description": "Returns Awards where the user is the named individual recipient, an active Owner/Admin of the recipient organization, the individual source publisher, or an active Owner/Admin of the source publisher organization. Results use a safe projection without ownership identifiers or immutable source snapshots.",
+        "operationId": "AwardsController_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0,
+              "example": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of Awards visible to the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "items": [
+                      {
+                        "id": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                        "sourceType": "Call",
+                        "sourceId": "f64f0d7f-d6f1-4c33-b27e-9aefb8b1f11c",
+                        "applicationId": "cc5af074-b339-444a-9d09-c7b165427021",
+                        "fundingOfferId": null,
+                        "allocation": "250000000000000000000000",
+                        "asset": "NEAR",
+                        "state": "Offered",
+                        "expiresAt": "2027-01-15T18:00:00.000Z",
+                        "acceptedAt": null,
+                        "releasedAt": null,
+                        "terms": {
+                          "purpose": "Install solar equipment for the approved rural clinic project",
+                          "reportingDeadline": "2027-03-31"
+                        }
+                      }
+                    ],
+                    "total": 1,
+                    "limit": 20,
+                    "offset": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Pagination values are outside the allowed range.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Award list query is invalid",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List Awards visible to the authenticated user",
+        "tags": [
+          "Awards"
+        ]
+      }
+    },
+    "/api/awards/{awardId}": {
+      "get": {
+        "description": "Returns an Award only to its named individual recipient, an active Owner/Admin of the recipient organization, the individual source publisher, or an active Owner/Admin of the source publisher organization. Unavailable and unauthorized Awards both return 404.",
+        "operationId": "AwardsController_get",
+        "parameters": [
+          {
+            "name": "awardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Safe Award projection. The Award state does not represent a deposit or payment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "sourceType": "Call",
+                    "sourceId": "f64f0d7f-d6f1-4c33-b27e-9aefb8b1f11c",
+                    "applicationId": "cc5af074-b339-444a-9d09-c7b165427021",
+                    "fundingOfferId": null,
+                    "allocation": "250000000000000000000000",
+                    "asset": "NEAR",
+                    "state": "Offered",
+                    "expiresAt": "2027-01-15T18:00:00.000Z",
+                    "acceptedAt": null,
+                    "releasedAt": null,
+                    "terms": {
+                      "purpose": "Install solar equipment for the approved rural clinic project",
+                      "reportingDeadline": "2027-03-31"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Award is missing or unavailable to this user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Award not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get an Award visible to the authenticated user",
+        "tags": [
+          "Awards"
+        ]
+      }
+    },
+    "/api/awards/applications/{applicationId}": {
+      "post": {
+        "description": "The authenticated publisher must own the source. The Application must be Selected. Creating this Award reserves source capacity but does not represent a deposit or payment.",
+        "operationId": "AwardsController_createFromApplication",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "cc5af074-b339-444a-9d09-c7b165427021",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAwardFromApplicationDto"
+              },
+              "examples": {
+                "solarClinic": {
+                  "summary": "Offer a NEAR allocation to a selected clinic application",
+                  "value": {
+                    "allocation": "250000000000000000000000",
+                    "asset": "NEAR",
+                    "expiresAt": "2027-01-15T18:00:00.000Z",
+                    "terms": {
+                      "purpose": "Install solar equipment for the approved rural clinic project",
+                      "reportingDeadline": "2027-03-31"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Award offer created and capacity reserved. The response explicitly reports that no deposit has been made.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "sourceType": "Call",
+                    "sourceId": "f64f0d7f-d6f1-4c33-b27e-9aefb8b1f11c",
+                    "applicationId": "cc5af074-b339-444a-9d09-c7b165427021",
+                    "fundingOfferId": null,
+                    "allocation": "250000000000000000000000",
+                    "asset": "NEAR",
+                    "state": "Offered",
+                    "expiresAt": "2027-01-15T18:00:00.000Z",
+                    "acceptedAt": null,
+                    "releasedAt": null,
+                    "terms": {
+                      "purpose": "Install solar equipment for the approved rural clinic project",
+                      "reportingDeadline": "2027-03-31"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The payload is invalid or the expiry is not in the future.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Award payload is invalid",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Application or its source was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Application not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The caller does not own the source, the Application is not selected, or reservation capacity is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Application must be selected for award",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an Award from a selected Application",
+        "tags": [
+          "Awards"
+        ]
+      }
+    },
+    "/api/awards/funding-offers/{fundingOfferId}": {
+      "post": {
+        "description": "The authenticated publisher must own the source. The FundingOffer must be Accepted and contain a monetary amount. Creating this Award reserves source capacity but does not represent a deposit or payment.",
+        "operationId": "AwardsController_createFromFundingOffer",
+        "parameters": [
+          {
+            "name": "fundingOfferId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "373b6349-73a8-481e-9f18-32d9948fb79d",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAwardFromFundingOfferDto"
+              },
+              "examples": {
+                "acceptedCommunityOffer": {
+                  "summary": "Set an expiry and terms for an accepted community offer",
+                  "value": {
+                    "expiresAt": "2027-01-15T18:00:00.000Z",
+                    "terms": {
+                      "purpose": "Fund the community water testing program",
+                      "reportingDeadline": "2027-03-31"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Award offer created from the accepted FundingOffer and capacity reserved; no deposit is implied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "sourceType": "Call",
+                    "sourceId": "f64f0d7f-d6f1-4c33-b27e-9aefb8b1f11c",
+                    "applicationId": null,
+                    "fundingOfferId": "373b6349-73a8-481e-9f18-32d9948fb79d",
+                    "allocation": "500000000000000000000000",
+                    "asset": "NEAR",
+                    "state": "Offered",
+                    "expiresAt": "2027-01-15T18:00:00.000Z",
+                    "acceptedAt": null,
+                    "releasedAt": null,
+                    "terms": {
+                      "purpose": "Fund the community water testing program",
+                      "reportingDeadline": "2027-03-31"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The payload is invalid or the expiry is not in the future.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Award payload is invalid",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The FundingOffer or its source was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "FundingOffer not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The caller does not own the source, the offer is not accepted, or reservation capacity is exhausted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "FundingOffer must be accepted for award",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an Award from an accepted FundingOffer",
+        "tags": [
+          "Awards"
+        ]
+      }
+    },
+    "/api/awards/{awardId}/accept": {
+      "post": {
+        "description": "The authenticated user is the actor. Organization recipients must provide their organization ID as context; the service verifies active Owner/Admin membership. Acceptance does not mean that funds were deposited.",
+        "operationId": "AwardsController_accept",
+        "parameters": [
+          {
+            "name": "awardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardRecipientResponseDto"
+              },
+              "examples": {
+                "organizationRecipient": {
+                  "summary": "Accept in an organization capacity",
+                  "value": {
+                    "recipientOrganizationId": "7a93fc29-42a1-4be9-901f-450e261dcd07"
+                  }
+                },
+                "individualRecipient": {
+                  "summary": "Accept as an individual recipient",
+                  "value": {
+                    "recipientOrganizationId": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Award accepted; no deposit or payment is implied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "sourceType": "Call",
+                    "sourceId": "f64f0d7f-d6f1-4c33-b27e-9aefb8b1f11c",
+                    "applicationId": "cc5af074-b339-444a-9d09-c7b165427021",
+                    "fundingOfferId": null,
+                    "allocation": "250000000000000000000000",
+                    "asset": "NEAR",
+                    "state": "Accepted",
+                    "expiresAt": "2027-01-15T18:00:00.000Z",
+                    "acceptedAt": "2026-11-14T12:30:00.000Z",
+                    "releasedAt": null,
+                    "terms": {
+                      "purpose": "Install solar equipment for the approved rural clinic project",
+                      "reportingDeadline": "2027-03-31"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The recipient context body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Award recipient response payload is invalid",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Award was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Award not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The caller is not the recipient, organization membership is insufficient, the Award is no longer Offered, or it has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Only the award recipient can respond",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept an Award as its recipient",
+        "tags": [
+          "Awards"
+        ]
+      }
+    },
+    "/api/awards/{awardId}/decline": {
+      "post": {
+        "description": "The authenticated user is the actor. Organization recipients must provide their organization ID as context; the service verifies active Owner/Admin membership. Declining releases the reservation and never records a deposit.",
+        "operationId": "AwardsController_decline",
+        "parameters": [
+          {
+            "name": "awardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwardRecipientResponseDto"
+              },
+              "examples": {
+                "organizationRecipient": {
+                  "summary": "Decline in an organization capacity",
+                  "value": {
+                    "recipientOrganizationId": "7a93fc29-42a1-4be9-901f-450e261dcd07"
+                  }
+                },
+                "individualRecipient": {
+                  "summary": "Decline as an individual recipient",
+                  "value": {
+                    "recipientOrganizationId": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Award declined and reservation released; no deposit recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "sourceType": "Call",
+                    "sourceId": "f64f0d7f-d6f1-4c33-b27e-9aefb8b1f11c",
+                    "applicationId": "cc5af074-b339-444a-9d09-c7b165427021",
+                    "fundingOfferId": null,
+                    "allocation": "250000000000000000000000",
+                    "asset": "NEAR",
+                    "state": "Declined",
+                    "expiresAt": "2027-01-15T18:00:00.000Z",
+                    "acceptedAt": null,
+                    "releasedAt": "2026-11-14T12:30:00.000Z",
+                    "terms": {
+                      "purpose": "Install solar equipment for the approved rural clinic project",
+                      "reportingDeadline": "2027-03-31"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The recipient context body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Award recipient response payload is invalid",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The Award was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Award not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The caller is not the recipient, organization membership is insufficient, the Award is no longer Offered, or it has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Only the award recipient can respond",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decline an Award as its recipient",
+        "tags": [
+          "Awards"
+        ]
+      }
+    },
     "/api/applications/{applicationId}/withdraw": {
       "post": {
         "operationId": "ApplicationLifecycleController_withdraw",
@@ -4248,6 +4973,92 @@
         "summary": "Create a short-lived download URL for private verification evidence",
         "tags": [
           "Organization verification"
+        ]
+      }
+    },
+    "/api/verification-cases/{caseId}/documents/{documentId}/complete": {
+      "post": {
+        "description": "Checks the stored object length and SHA-256 metadata/checksum before placing it on the malware scan queue. The object remains private while pending, failed, or quarantined.",
+        "operationId": "VerificationUploadCompletionController_complete",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "b44383ce-e03f-4bed-9c34-020bff9e5f6a",
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "36cb7118-d7d5-48f3-a39e-7ea0a62d340b",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload completion was verified and malware scanning was queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "documentId": "36cb7118-d7d5-48f3-a39e-7ea0a62d340b",
+                    "scanStatus": "Queued"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "404": {
+            "description": "The case/document was not found or is outside the caller organization scope."
+          },
+          "409": {
+            "description": "The object is missing, has a mismatched length/checksum, or the case/document state does not allow completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Uploaded verification object does not match its declared length and SHA-256 checksum",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The scan job could not be queued; the private document remains pending for retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 503,
+                    "message": "Malware scan could not be scheduled; the private document will be retried",
+                    "error": "Service Unavailable"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify a private organization document upload and enqueue malware scanning",
+        "tags": [
+          "Verification uploads"
         ]
       }
     },
@@ -5533,6 +6344,1183 @@
           "Participation"
         ]
       }
+    },
+    "/api/agreements/{agreementId}/acceptances/challenges": {
+      "post": {
+        "description": "The challenge binds the exact current agreement version and terms hash, party key, authenticated user, active linked wallet, network, recipient, and expiration.",
+        "operationId": "AgreementAcceptanceController_issueAcceptanceChallenge",
+        "parameters": [
+          {
+            "name": "agreementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedVersion": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "maximum": 9007199254740991
+                  },
+                  "expectedHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "partyKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "expectedVersion",
+                  "expectedHash",
+                  "partyKey"
+                ],
+                "additionalProperties": false
+              },
+              "examples": {
+                "currentTerms": {
+                  "value": {
+                    "expectedVersion": 2,
+                    "expectedHash": "db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1",
+                    "partyKey": "recipient-org"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A short-lived NEP-413 acceptance challenge was issued.",
+            "schema": {
+              "example": {
+                "id": "1d76e1ac-dba2-46b0-8496-a13328682d2b",
+                "message": "{\"type\":\"backmint.agreement.acceptance\",\"challengeId\":\"1d76e1ac-dba2-46b0-8496-a13328682d2b\",\"agreementId\":\"a38f9153-4d27-4d3a-bc21-40f67691b8ef\",\"version\":2,\"termsHash\":\"db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1\",\"partyKey\":\"recipient-org\",\"userId\":\"f2625a81-2af8-4c5b-943a-07c4763fce29\",\"walletLinkId\":\"1ed85f24-fbe3-4a2b-8570-85571d64b76f\",\"accountId\":\"alice.testnet\",\"publicKey\":\"ed25519:11111111111111111111111111111111\",\"network\":\"near:testnet\",\"agreementNetwork\":\"near:testnet\",\"recipient\":\"backmint-server\",\"expiresAt\":\"2026-11-14T12:05:00.000Z\"}",
+                "nonce": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+                "accountId": "alice.testnet",
+                "publicKey": "ed25519:11111111111111111111111111111111",
+                "network": "near:testnet",
+                "recipient": "backmint-server",
+                "expiresAt": "2026-11-14T12:05:00.000Z"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgreementAcceptanceChallengeResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The challenge request is invalid."
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "403": {
+            "description": "The caller is not authorized for this party or has no active linked wallet."
+          },
+          "404": {
+            "description": "Agreement does not exist."
+          },
+          "409": {
+            "description": "The agreement is not accepting, the requested version/hash is stale, the deadline passed, or wallet network does not match."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Issue a one-time NEP-413 agreement acceptance challenge",
+        "tags": [
+          "Agreements"
+        ]
+      }
+    },
+    "/api/agreements/{agreementId}/acceptances": {
+      "post": {
+        "description": "Verifies a one-time NEP-413 signature from the active wallet linked to the authenticated user. The signed payload binds the exact current version, terms hash, party key, user, linked account, network, recipient, and challenge expiration before checking legal authority and recording acceptance.",
+        "operationId": "AgreementAcceptanceController_accept",
+        "parameters": [
+          {
+            "name": "agreementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedVersion": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "maximum": 9007199254740991
+                  },
+                  "expectedHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "partyKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "challengeId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "nonce": {
+                    "type": "string",
+                    "minLength": 40,
+                    "maxLength": 50
+                  },
+                  "signature": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9+/]{86}==$"
+                  }
+                },
+                "required": [
+                  "expectedVersion",
+                  "expectedHash",
+                  "partyKey",
+                  "challengeId",
+                  "nonce",
+                  "signature"
+                ],
+                "additionalProperties": false
+              },
+              "examples": {
+                "signedAcceptance": {
+                  "summary": "Accept using a signed one-time wallet challenge",
+                  "value": {
+                    "expectedVersion": 2,
+                    "expectedHash": "db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1",
+                    "partyKey": "recipient-org",
+                    "challengeId": "1d76e1ac-dba2-46b0-8496-a13328682d2b",
+                    "nonce": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+                    "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The party acceptance was recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "agreementId": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+                    "status": "PendingAcceptance",
+                    "currentVersion": 2
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": [
+                      "expectedVersion must be a positive integer"
+                    ],
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session, challenge, nonce, signature, or linked wallet is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "Agreement acceptance signature is invalid",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller is not authorized to accept for this party.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active representative authority is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agreement does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Agreement was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The agreement is not accepting, the version/hash is stale, the deadline passed, or the party has already accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Acceptance references a stale agreement version",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record the authenticated party acceptance of the current agreement version",
+        "tags": [
+          "Agreements"
+        ]
+      }
+    },
+    "/api/awards/{awardId}/agreements": {
+      "post": {
+        "description": "Creates the Award’s single Agreement in Draft with immutable version 1. Agreement terms are validated against the accepted Award allocation and parties.",
+        "operationId": "AgreementsManagementController_createFromAward",
+        "parameters": [
+          {
+            "name": "awardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "terms": {
+                    "type": "object",
+                    "properties": {
+                      "network": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "asset": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "parties": {
+                        "minItems": 1,
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 80
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "Funder",
+                                "Recipient",
+                                "Verifier"
+                              ]
+                            },
+                            "organizationId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "userId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "role",
+                            "required"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "milestones": {
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "verificationAuthority": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "deadlines": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        }
+                      },
+                      "cancellationPolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "disputePolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "refundPolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "legalTerms": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "economicTerms": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "network",
+                      "asset",
+                      "parties",
+                      "milestones",
+                      "verificationAuthority",
+                      "deadlines",
+                      "cancellationPolicy",
+                      "disputePolicy",
+                      "refundPolicy",
+                      "legalTerms",
+                      "economicTerms"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "acceptanceExpiresAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "contractArtifactReference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  }
+                },
+                "required": [
+                  "terms",
+                  "acceptanceExpiresAt",
+                  "contractArtifactReference"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agreement created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+                    "awardId": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "status": "Draft",
+                    "currentVersion": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Terms or deadline are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Agreement network and asset are required",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Award does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Award was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Award is not accepted or already has an Agreement.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Award must be accepted before agreement creation",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an Agreement from an accepted Award",
+        "tags": [
+          "Agreements"
+        ]
+      }
+    },
+    "/api/agreements/{agreementId}/versions": {
+      "post": {
+        "description": "Creates the next immutable terms version while the Agreement is Draft or PendingAcceptance. This resets its status to Draft, making prior signatures stale.",
+        "operationId": "AgreementsManagementController_createVersion",
+        "parameters": [
+          {
+            "name": "agreementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "terms": {
+                    "type": "object",
+                    "properties": {
+                      "network": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "asset": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "parties": {
+                        "minItems": 1,
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 80
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "Funder",
+                                "Recipient",
+                                "Verifier"
+                              ]
+                            },
+                            "organizationId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "userId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "role",
+                            "required"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "milestones": {
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "verificationAuthority": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "deadlines": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        }
+                      },
+                      "cancellationPolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "disputePolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "refundPolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "legalTerms": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "economicTerms": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "network",
+                      "asset",
+                      "parties",
+                      "milestones",
+                      "verificationAuthority",
+                      "deadlines",
+                      "cancellationPolicy",
+                      "disputePolicy",
+                      "refundPolicy",
+                      "legalTerms",
+                      "economicTerms"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "acceptanceExpiresAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "contractArtifactReference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  }
+                },
+                "required": [
+                  "terms",
+                  "acceptanceExpiresAt",
+                  "contractArtifactReference"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable version created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "agreementId": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+                    "version": 2,
+                    "terms": {
+                      "network": "near:testnet",
+                      "asset": "NEAR",
+                      "parties": [
+                        {
+                          "key": "recipient-org",
+                          "role": "Recipient",
+                          "required": true
+                        }
+                      ],
+                      "milestones": [
+                        {
+                          "sequence": 1,
+                          "allocationBaseUnits": "1000000000000000000000000"
+                        }
+                      ],
+                      "verificationAuthority": {
+                        "type": "funder-review"
+                      },
+                      "deadlines": {
+                        "completion": "2027-06-30T23:59:59.000Z"
+                      },
+                      "cancellationPolicy": {
+                        "permitted": true
+                      },
+                      "disputePolicy": {
+                        "process": "mediation"
+                      },
+                      "refundPolicy": {
+                        "unspentFunds": "return-to-funder"
+                      },
+                      "legalTerms": {
+                        "governingLaw": "Bolivia"
+                      },
+                      "economicTerms": {
+                        "allocationBaseUnits": "1000000000000000000000000"
+                      }
+                    },
+                    "termsHash": "db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1",
+                    "economicTermsHash": "08e5fba3d3f5e987e9c56514c7a96ac68f690c51ca379d1426076db2b4951ad8",
+                    "acceptanceExpiresAt": "2027-01-15T18:00:00.000Z",
+                    "contractArtifactReference": "backmint-contracts:escrow-v1"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Terms or deadline are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Agreement version input is invalid",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "404": {
+            "description": "Agreement does not exist."
+          },
+          "409": {
+            "description": "Agreement is no longer amendable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Agreement terms can no longer be amended",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new immutable Agreement version",
+        "tags": [
+          "Agreements"
+        ]
+      }
+    },
+    "/api/agreements/{agreementId}/submissions": {
+      "post": {
+        "description": "Moves the current Draft version to PendingAcceptance. The parties sign this exact immutable version; chain registration and finance integration are separate pending work.",
+        "operationId": "AgreementsManagementController_submitForAcceptance",
+        "parameters": [
+          {
+            "name": "agreementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current version is pending party signatures.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+                    "awardId": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "status": "PendingAcceptance",
+                    "currentVersion": 2
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "404": {
+            "description": "Agreement does not exist."
+          },
+          "409": {
+            "description": "Agreement cannot be submitted or its acceptance deadline has passed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Agreement acceptance deadline has passed",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit the current Agreement version for signatures",
+        "tags": [
+          "Agreements"
+        ]
+      }
+    },
+    "/api/public/organizations": {
+      "get": {
+        "operationId": "PublicProfilesController_listOrganizations",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 20,
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 0,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stable slug-ordered page of public organizations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "items": [
+                      {
+                        "id": "a54e27b4-2c0a-4d66-a9ab-8c98fb6281e8",
+                        "slug": "green-futures-bolivia",
+                        "name": "Green Futures Bolivia",
+                        "organizationType": "Nonprofit",
+                        "country": "BO",
+                        "legalStatus": "Incorporated"
+                      }
+                    ],
+                    "total": 1,
+                    "limit": 20,
+                    "offset": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Pagination parameters are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "limit must be 1-100 and offset must be non-negative",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List public organization profiles",
+        "tags": [
+          "Public profiles"
+        ]
+      }
+    },
+    "/api/public/organizations/{identifier}": {
+      "get": {
+        "operationId": "PublicProfilesController_organization",
+        "parameters": [
+          {
+            "name": "identifier",
+            "required": true,
+            "in": "path",
+            "description": "Public profiles accept a slug; unlisted profiles require the organization UUID direct link.",
+            "schema": {
+              "example": "green-futures-bolivia",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Privacy-filtered organization profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "a54e27b4-2c0a-4d66-a9ab-8c98fb6281e8",
+                    "slug": "green-futures-bolivia",
+                    "name": "Green Futures Bolivia",
+                    "organizationType": "Nonprofit",
+                    "country": "BO",
+                    "legalStatus": "Incorporated",
+                    "verification": {
+                      "status": "Verified"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Private, inactive, or unknown profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Public profile was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a public or directly linked unlisted organization profile",
+        "tags": [
+          "Public profiles"
+        ]
+      }
+    },
+    "/api/public/opportunities/{sourceType}/{id}": {
+      "get": {
+        "operationId": "PublicProfilesController_opportunity",
+        "parameters": [
+          {
+            "name": "sourceType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "Project",
+                "Call"
+              ],
+              "type": "string",
+              "example": "Call"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID direct link; unlisted sources are never returned by public listings.",
+            "schema": {
+              "format": "uuid",
+              "example": "f64f0d7f-d6f1-4c33-b27e-9aefb8b1f11c",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published fields and opted-in disclosures only.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "sourceType": "Call",
+                    "id": "f64f0d7f-d6f1-4c33-b27e-9aefb8b1f11c",
+                    "title": "Community Solar Grants",
+                    "description": "Funding for locally led solar projects.",
+                    "direction": "FundingOffered",
+                    "lifecycleStatus": "Published",
+                    "intakeStatus": "Open",
+                    "publishedAt": "2026-11-14T12:00:00.000Z",
+                    "audienceTypes": [
+                      "Community",
+                      "Nonprofit"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Private, inactive, or unknown source.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Public profile was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a published Project or Call profile",
+        "tags": [
+          "Public profiles"
+        ]
+      }
+    },
+    "/api/organizations/{organizationId}/public-profile-disclosure": {
+      "patch": {
+        "operationId": "PublicProfileDisclosureController_update",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "a54e27b4-2c0a-4d66-a9ab-8c98fb6281e8",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "discloseVerificationStatus"
+                ],
+                "properties": {
+                  "discloseVerificationStatus": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "examples": {
+                "optIn": {
+                  "summary": "Explicitly disclose verification status",
+                  "value": {
+                    "discloseVerificationStatus": true
+                  }
+                },
+                "optOut": {
+                  "summary": "Hide verification status",
+                  "value": {
+                    "discloseVerificationStatus": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Disclosure preference updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "organizationId": "a54e27b4-2c0a-4d66-a9ab-8c98fb6281e8",
+                    "discloseVerificationStatus": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "discloseVerificationStatus must be a boolean",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only an active organization Owner or Admin may change disclosure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Organization owner or admin permission is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Organization does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Organization was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set public disclosure of the organization verification status",
+        "tags": [
+          "Organization profile disclosure"
+        ]
+      }
     }
   },
   "info": {
@@ -6129,6 +8117,74 @@
           "notes"
         ]
       },
+      "CreateAwardFromApplicationDto": {
+        "type": "object",
+        "properties": {
+          "allocation": {
+            "type": "string",
+            "example": "250000000000000000000000",
+            "description": "Positive integer in the source asset base units."
+          },
+          "asset": {
+            "type": "string",
+            "example": "NEAR"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2027-01-15T18:00:00.000Z"
+          },
+          "terms": {
+            "type": "object",
+            "additionalProperties": true,
+            "example": {
+              "purpose": "Install solar equipment for the approved rural clinic project",
+              "reportingDeadline": "2027-03-31"
+            }
+          }
+        },
+        "required": [
+          "allocation",
+          "asset",
+          "expiresAt"
+        ]
+      },
+      "CreateAwardFromFundingOfferDto": {
+        "type": "object",
+        "properties": {
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2027-01-15T18:00:00.000Z"
+          },
+          "terms": {
+            "type": "object",
+            "additionalProperties": true,
+            "example": {
+              "purpose": "Fund the community water testing program",
+              "reportingDeadline": "2027-03-31"
+            }
+          }
+        },
+        "required": [
+          "expiresAt"
+        ]
+      },
+      "AwardRecipientResponseDto": {
+        "type": "object",
+        "properties": {
+          "recipientOrganizationId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "example": "7a93fc29-42a1-4be9-901f-450e261dcd07",
+            "description": "Required organization context for an organization recipient; use null for an individual recipient."
+          }
+        },
+        "required": [
+          "recipientOrganizationId"
+        ]
+      },
       "VerificationUploadRequestDto": {
         "type": "object",
         "properties": {
@@ -6422,6 +8478,56 @@
           "sourceType",
           "sourceId",
           "conditions"
+        ]
+      },
+      "AgreementAcceptanceChallengeResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "1d76e1ac-dba2-46b0-8496-a13328682d2b"
+          },
+          "message": {
+            "type": "string",
+            "example": "{\"type\":\"backmint.agreement.acceptance\",\"challengeId\":\"1d76e1ac-dba2-46b0-8496-a13328682d2b\",\"agreementId\":\"a38f9153-4d27-4d3a-bc21-40f67691b8ef\",\"version\":2,\"termsHash\":\"db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1\",\"partyKey\":\"recipient-org\",\"userId\":\"f2625a81-2af8-4c5b-943a-07c4763fce29\",\"walletLinkId\":\"1ed85f24-fbe3-4a2b-8570-85571d64b76f\",\"accountId\":\"alice.testnet\",\"publicKey\":\"ed25519:11111111111111111111111111111111\",\"network\":\"near:testnet\",\"agreementNetwork\":\"near:testnet\",\"recipient\":\"backmint-server\",\"expiresAt\":\"2026-11-14T12:05:00.000Z\"}"
+          },
+          "nonce": {
+            "type": "string",
+            "example": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=",
+            "description": "Base64-encoded 32-byte one-time challenge nonce."
+          },
+          "accountId": {
+            "type": "string",
+            "example": "alice.testnet"
+          },
+          "publicKey": {
+            "type": "string",
+            "example": "ed25519:11111111111111111111111111111111"
+          },
+          "network": {
+            "type": "string",
+            "example": "near:testnet"
+          },
+          "recipient": {
+            "type": "string",
+            "example": "backmint-server"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-11-14T12:05:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "message",
+          "nonce",
+          "accountId",
+          "publicKey",
+          "network",
+          "recipient",
+          "expiresAt"
         ]
       }
     }
