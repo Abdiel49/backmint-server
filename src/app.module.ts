@@ -27,6 +27,7 @@ import { IdentityModule } from './identity/identity.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { OutboxModule } from './infrastructure/outbox/outbox.module.js';
 import { PublicationsModule } from './publications/publications.module.js';
+import { AuditPersistenceModule } from './audit/audit-persistence.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -113,6 +114,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ScheduleModule.forRoot(),
     AsyncQueuesModule,
     OutboxModule,
+    AuditPersistenceModule,
     ObjectStorageModule,
     NearModule,
     IdentityModule,
