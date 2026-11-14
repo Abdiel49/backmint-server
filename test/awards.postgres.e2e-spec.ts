@@ -1,5 +1,13 @@
-import { DataSource, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 import dataSource from '../src/database/data-source.js';
+import { AuditEventEntity } from '../src/audit/audit-event.entity.js';
+import { AuditPersistenceService } from '../src/audit/audit-persistence.service.js';
+import {
+  EvaluationAssignmentEntity,
+  EvaluationEntity,
+  EvaluationRoundEntity,
+} from '../src/evaluations/evaluation.entity.js';
+import { EvaluationsService } from '../src/evaluations/evaluations.service.js';
 import {
   ApplicationEntity,
   FundingOfferEntity,
@@ -17,10 +25,7 @@ describe.skipIf(!postgresIntegration)(
   () => {
     let connection: DataSource;
     let service: AwardsService;
-    const createdProjectIds: string[] = [];
-    const createdApplicationIds: string[] = [];
-    const createdFundingOfferIds: string[] = [];
-    const createdUserIds: string[] = [];
+    let evaluations: EvaluationsService;
 
     beforeAll(async () => {
       connection = new DataSource({
@@ -32,37 +37,23 @@ describe.skipIf(!postgresIntegration)(
           ApplicationEntity,
           FundingOfferEntity,
           AwardEntity,
+          EvaluationRoundEntity,
+          EvaluationAssignmentEntity,
+          EvaluationEntity,
+          AuditEventEntity,
         ],
         migrations: [],
       });
       if (!connection.isInitialized) await connection.initialize();
       service = new AwardsService(connection);
+      evaluations = new EvaluationsService(
+        connection,
+        new AuditPersistenceService(),
+      );
     });
 
     afterAll(async () => {
-      if (connection?.isInitialized) {
-        if (createdProjectIds.length)
-          await connection
-            .getRepository(AwardEntity)
-            .delete({ sourceId: In(createdProjectIds) });
-        if (createdApplicationIds.length)
-          await connection
-            .getRepository(ApplicationEntity)
-            .delete({ id: In(createdApplicationIds) });
-        if (createdFundingOfferIds.length)
-          await connection
-            .getRepository(FundingOfferEntity)
-            .delete({ id: In(createdFundingOfferIds) });
-        if (createdProjectIds.length)
-          await connection
-            .getRepository(ProjectEntity)
-            .delete({ id: In(createdProjectIds) });
-        if (createdUserIds.length)
-          await connection
-            .getRepository(UserEntity)
-            .delete({ id: In(createdUserIds) });
-        await connection.destroy();
-      }
+      if (connection?.isInitialized) await connection.destroy();
     });
 
     async function fixture(input: { maximumAwards: number; budget: string }) {
@@ -78,8 +69,10 @@ describe.skipIf(!postgresIntegration)(
           connection
             .getRepository(UserEntity)
             .create({ displayName: `recipient-${crypto.randomUUID()}` }),
+          connection
+            .getRepository(UserEntity)
+            .create({ displayName: `reviewer-${crypto.randomUUID()}` }),
         ]);
-      createdUserIds.push(...users.map((user) => user.id));
       const project = await connection.getRepository(ProjectEntity).save(
         connection.getRepository(ProjectEntity).create({
           ownerUserId: users[0].id,
@@ -105,11 +98,10 @@ describe.skipIf(!postgresIntegration)(
           },
         }),
       );
-      createdProjectIds.push(project.id);
       const applications = await connection
         .getRepository(ApplicationEntity)
         .save(
-          users.slice(1).map((user, index) =>
+          users.slice(1, 3).map((user, index) =>
             connection.getRepository(ApplicationEntity).create({
               sourceType: 'Project',
               sourceId: project.id,
@@ -121,14 +113,53 @@ describe.skipIf(!postgresIntegration)(
               sourceSnapshot: { title: project.title },
               applicantSnapshot: { userId: user.id },
               proposalSnapshot: { index },
-              status: 'Selected',
+              status: 'Shortlisted',
               receipt: crypto.randomUUID(),
               withdrawnAt: null,
             }),
           ),
         );
-      createdApplicationIds.push(
-        ...applications.map((application) => application.id),
+      const round = await connection.getRepository(EvaluationRoundEntity).save(
+        connection.getRepository(EvaluationRoundEntity).create({
+          sourceType: 'Project',
+          sourceId: project.id,
+          stage: 'FinalReview',
+          rubricVersion: 1,
+          rubric: { quality: { maximum: 5 } },
+          status: 'Open',
+          createdByUserId: users[0].id,
+        }),
+      );
+      const assignments = await connection
+        .getRepository(EvaluationAssignmentEntity)
+        .save(
+          applications.map((application) =>
+            connection.getRepository(EvaluationAssignmentEntity).create({
+              roundId: round.id,
+              evaluatorUserId: users[3].id,
+              applicationId: application.id,
+              fundingOfferId: null,
+              conflictStatus: 'NoConflict',
+              conflictReason: null,
+              conflictDeclaredAt: new Date(),
+              status: 'Submitted',
+            }),
+          ),
+        );
+      await connection.getRepository(EvaluationEntity).save(
+        assignments.map((assignment) =>
+          connection.getRepository(EvaluationEntity).create({
+            assignmentId: assignment.id,
+            version: 1,
+            findings: { summary: 'Meets the published criteria' },
+            rubricScores: { quality: 5 },
+            eligibilityDecision: 'Eligible',
+            deterministicEligibility: null,
+            recommendation: 'Recommend',
+            notes: 'Reviewed by an assigned, conflict-cleared evaluator.',
+            submittedByUserId: users[3].id,
+          }),
+        ),
       );
       return { project, applications, users };
     }
@@ -138,6 +169,11 @@ describe.skipIf(!postgresIntegration)(
         maximumAwards: 1,
         budget: '100',
       });
+      for (const application of applications)
+        await evaluations.selectApplication({
+          applicationId: application.id,
+          actorUserId: project.ownerUserId!,
+        });
       const results = await Promise.allSettled(
         applications.map((application) =>
           service.createFromApplication({
@@ -186,6 +222,11 @@ describe.skipIf(!postgresIntegration)(
         maximumAwards: 3,
         budget: '100',
       });
+      for (const application of applications)
+        await evaluations.selectApplication({
+          applicationId: application.id,
+          actorUserId: project.ownerUserId!,
+        });
       const results = await Promise.allSettled(
         applications.map((application) =>
           service.createFromApplication({
@@ -218,7 +259,6 @@ describe.skipIf(!postgresIntegration)(
             .getRepository(UserEntity)
             .create({ displayName: `funder-${crypto.randomUUID()}` }),
         ]);
-      createdUserIds.push(...users.map((user) => user.id));
       const project = await connection.getRepository(ProjectEntity).save(
         connection.getRepository(ProjectEntity).create({
           ownerUserId: users[0].id,
@@ -243,7 +283,6 @@ describe.skipIf(!postgresIntegration)(
           },
         }),
       );
-      createdProjectIds.push(project.id);
       const offer = await connection.getRepository(FundingOfferEntity).save(
         connection.getRepository(FundingOfferEntity).create({
           sourceType: 'Project',
@@ -264,7 +303,6 @@ describe.skipIf(!postgresIntegration)(
           reviewedAt: new Date(),
         }),
       );
-      createdFundingOfferIds.push(offer.id);
       const award = await service.createFromFundingOffer({
         fundingOfferId: offer.id,
         expiresAt: new Date(Date.now() + 60_000),
@@ -273,12 +311,18 @@ describe.skipIf(!postgresIntegration)(
       });
       expect(award).toMatchObject({
         fundingOfferId: offer.id,
-        recipientUserId: users[1].id,
+        recipientUserId: users[0].id,
         allocation: '75',
         asset: 'near:testnet:token',
         state: 'Offered',
+        termsSnapshot: {
+          recipient: { organizationId: null, userId: users[0].id },
+          funder: { organizationId: null, userId: users[1].id },
+        },
       });
-      await expect(service.accept(award.id, users[1].id)).resolves.toMatchObject({
+      await expect(
+        service.accept(award.id, users[0].id),
+      ).resolves.toMatchObject({
         state: 'Accepted',
         acceptedAt: expect.any(Date),
       });

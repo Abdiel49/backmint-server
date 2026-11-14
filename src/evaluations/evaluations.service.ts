@@ -4,7 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { DataSource, EntityManager } from 'typeorm';
+import { AuditPersistenceService } from '../audit/audit-persistence.service.js';
 import {
   ApplicationAnswerEntity,
   ApplicationEntity,
@@ -32,7 +34,94 @@ type Submission = ApplicationEntity | FundingOfferEntity;
 
 @Injectable()
 export class EvaluationsService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly audit: AuditPersistenceService,
+  ) {}
+
+  async selectApplication(input: {
+    applicationId: string;
+    actorUserId: string;
+  }): Promise<ApplicationEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const application = await manager
+        .getRepository(ApplicationEntity)
+        .findOne({
+          where: { id: input.applicationId },
+          lock: { mode: 'pessimistic_write' },
+        });
+      if (!application) throw new NotFoundException('Application not found');
+      if (application.status !== 'Shortlisted')
+        throw new BadRequestException(
+          'Only shortlisted Applications can be selected',
+        );
+      const sourceEntity =
+        application.sourceType === 'Project' ? ProjectEntity : CallEntity;
+      const source = await manager.getRepository(sourceEntity).findOne({
+        where: { id: application.sourceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!source)
+        throw new NotFoundException('Application publication not found');
+      let actingOrganizationId: string | undefined;
+      let membershipRole: string | undefined;
+      if (source.ownerUserId !== input.actorUserId) {
+        if (!source.ownerOrganizationId)
+          throw new ForbiddenException('Actor is not the publication owner');
+        const membership = await manager
+          .getRepository(OrganizationMembershipEntity)
+          .findOneBy({
+            organizationId: source.ownerOrganizationId,
+            userId: input.actorUserId,
+            status: 'Active',
+          });
+        if (
+          !membership ||
+          (membership.role !== OrganizationRole.Owner &&
+            membership.role !== OrganizationRole.Admin)
+        )
+          throw new ForbiddenException(
+            'Actor lacks publication selection permission',
+          );
+        actingOrganizationId = source.ownerOrganizationId;
+        membershipRole = membership.role;
+      }
+      const humanReviews = await manager.query(
+        `SELECT 1
+         FROM "evaluation_assignments" assignment
+         INNER JOIN "evaluations" evaluation ON evaluation."assignmentId" = assignment."id"
+         WHERE assignment."applicationId" = $1
+           AND assignment."status" = 'Submitted'
+           AND assignment."conflictStatus" = 'NoConflict'
+         LIMIT 1`,
+        [application.id],
+      );
+      if (!humanReviews.length)
+        throw new BadRequestException(
+          'At least one conflict-cleared human evaluation is required before selection',
+        );
+      application.status = 'Selected';
+      const selected = await manager
+        .getRepository(ApplicationEntity)
+        .save(application);
+      await this.audit.appendAuditEvent(manager, {
+        action: 'ApplicationSelected',
+        outcome: 'Allowed',
+        targetType: 'Application',
+        targetId: application.id,
+        actor: {
+          userId: input.actorUserId,
+          ...(actingOrganizationId
+            ? { organizationId: actingOrganizationId }
+            : {}),
+          ...(membershipRole ? { membershipRole } : {}),
+        },
+        correlationId: randomUUID(),
+        reasonCode: 'HumanSelection',
+      });
+      return selected;
+    });
+  }
 
   async createRound(input: {
     sourceType: 'Project' | 'Call';

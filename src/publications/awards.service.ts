@@ -123,8 +123,8 @@ export class AwardsService {
         sourceId: offer.sourceId,
         applicationId: null,
         fundingOfferId: offer.id,
-        recipientOrganizationId: offer.funderOrganizationId,
-        recipientUserId: offer.funderUserId,
+        recipientOrganizationId: source.ownerOrganizationId ?? null,
+        recipientUserId: source.ownerUserId ?? null,
         allocation,
         asset: offer.asset,
         expiresAt: input.expiresAt,
@@ -140,6 +140,14 @@ export class AwardsService {
           supportDescription: offer.supportDescription,
           supportType: offer.supportType,
           restrictedPurpose: offer.restrictedPurpose,
+          recipient: {
+            organizationId: source.ownerOrganizationId ?? null,
+            userId: source.ownerUserId ?? null,
+          },
+          funder: {
+            organizationId: offer.funderOrganizationId,
+            userId: offer.funderUserId,
+          },
           terms: input.terms ?? {},
         },
       });
