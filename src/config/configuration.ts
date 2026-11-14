@@ -87,6 +87,24 @@ const environmentSchema = z.object({
     .string()
     .optional()
     .transform((value) => value || undefined),
+  VERIFICATION_UPLOAD_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(100_000_000)
+    .default(25_000_000),
+  CLAMAV_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+  CLAMAV_HOST: z.string().min(1).default('localhost'),
+  CLAMAV_PORT: z.coerce.number().int().min(1).max(65535).default(3310),
+  CLAMAV_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .min(1000)
+    .max(120_000)
+    .default(30_000),
   NEAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   NEAR_RPC_URL: z.url(),
   NEAR_CONTRACT_ID: z.string().min(1),
@@ -201,6 +219,18 @@ export const objectStorageConfig = registerAs('objectStorage', () => {
     signedUrlTtlSeconds: environment.OBJECT_STORAGE_SIGNED_URL_TTL_SECONDS,
     serverSideEncryption: environment.OBJECT_STORAGE_SERVER_SIDE_ENCRYPTION,
     kmsKeyId: environment.OBJECT_STORAGE_KMS_KEY_ID,
+  };
+});
+
+export const malwareScanConfig = registerAs('malwareScan', () => {
+  const environment = getEnvironment();
+
+  return {
+    enabled: environment.CLAMAV_ENABLED,
+    host: environment.CLAMAV_HOST,
+    port: environment.CLAMAV_PORT,
+    timeoutMs: environment.CLAMAV_TIMEOUT_MS,
+    maxBytes: environment.VERIFICATION_UPLOAD_MAX_BYTES,
   };
 });
 

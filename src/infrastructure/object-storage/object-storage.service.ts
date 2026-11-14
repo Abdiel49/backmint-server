@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  HeadObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   type S3Client,
@@ -20,6 +21,12 @@ export interface CreateUploadUrlInput {
 export interface CreateDownloadUrlInput {
   scope: string;
   key: string;
+}
+
+export interface StoredObjectMetadata {
+  contentLength?: number;
+  checksumSha256?: string;
+  metadataChecksumSha256?: string;
 }
 
 export interface PresignedObjectUrl {
@@ -75,6 +82,38 @@ export class ObjectStorageService {
     });
 
     return this.createPresignedUrl(command, input.key);
+  }
+
+  async headObject(key: string, scope: string): Promise<StoredObjectMetadata> {
+    const validatedScope = this.validateScope(scope);
+    this.validateScopedKey(validatedScope, key);
+    const result = await this.client.send(
+      new HeadObjectCommand({
+        Bucket: this.storage.bucket,
+        Key: key,
+        ChecksumMode: 'ENABLED',
+      }),
+    );
+    return {
+      contentLength: result.ContentLength,
+      checksumSha256: result.ChecksumSHA256,
+      metadataChecksumSha256: result.Metadata?.['checksum-sha256'],
+    };
+  }
+
+  async getObjectStream(
+    key: string,
+    scope: string,
+  ): Promise<AsyncIterable<Uint8Array>> {
+    const validatedScope = this.validateScope(scope);
+    this.validateScopedKey(validatedScope, key);
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: this.storage.bucket, Key: key }),
+    );
+    if (!result.Body || !(Symbol.asyncIterator in result.Body)) {
+      throw new Error('Stored object body is unavailable');
+    }
+    return result.Body as AsyncIterable<Uint8Array>;
   }
 
   private async createPresignedUrl(
