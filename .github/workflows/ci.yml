@@ -9,6 +9,8 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      RUN_POSTGRES_INTEGRATION: 'true'
     services:
       postgres:
         image: postgres:17-alpine
