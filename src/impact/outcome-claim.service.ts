@@ -1,4 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { EntityManager } from 'typeorm';
 import { AuditPersistenceService } from '../audit/audit-persistence.service.js';
 import { CallEntity } from '../publications/call.entity.js';
@@ -111,6 +112,17 @@ export class OutcomeClaimService {
       actor: { userId: input.reviewerUserId },
       correlationId: input.correlationId,
       reasonCode: input.provenance,
+      beforeHash: this.hashJson({
+        id: claim.id,
+        provenance: claim.provenance,
+        verifierUserId: claim.verifierUserId,
+      }),
+      afterHash: this.hashJson({
+        id: claim.id,
+        provenance: input.provenance,
+        verifierUserId: input.reviewerUserId,
+        verifiedAt: verifiedAt.toISOString(),
+      }),
     });
 
     return Object.assign(new OutcomeClaimEntity(), claim, {
@@ -153,5 +165,9 @@ export class OutcomeClaimService {
     if (!manager.queryRunner?.isTransactionActive) {
       throw new Error('Outcome claim writes require an active transaction');
     }
+  }
+
+  private hashJson(value: Record<string, string | null>): string {
+    return createHash('sha256').update(JSON.stringify(value)).digest('hex');
   }
 }
