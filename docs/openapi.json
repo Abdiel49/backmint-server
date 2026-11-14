@@ -6631,6 +6631,608 @@
         ]
       }
     },
+    "/api/awards/{awardId}/agreements": {
+      "post": {
+        "description": "Creates the Award’s single Agreement in Draft with immutable version 1. Agreement terms are validated against the accepted Award allocation and parties.",
+        "operationId": "AgreementsManagementController_createFromAward",
+        "parameters": [
+          {
+            "name": "awardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "terms": {
+                    "type": "object",
+                    "properties": {
+                      "network": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "asset": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "parties": {
+                        "minItems": 1,
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 80
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "Funder",
+                                "Recipient",
+                                "Verifier"
+                              ]
+                            },
+                            "organizationId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "userId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "role",
+                            "required"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "milestones": {
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "verificationAuthority": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "deadlines": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        }
+                      },
+                      "cancellationPolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "disputePolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "refundPolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "legalTerms": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "economicTerms": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "network",
+                      "asset",
+                      "parties",
+                      "milestones",
+                      "verificationAuthority",
+                      "deadlines",
+                      "cancellationPolicy",
+                      "disputePolicy",
+                      "refundPolicy",
+                      "legalTerms",
+                      "economicTerms"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "acceptanceExpiresAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "contractArtifactReference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  }
+                },
+                "required": [
+                  "terms",
+                  "acceptanceExpiresAt",
+                  "contractArtifactReference"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agreement created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+                    "awardId": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "status": "Draft",
+                    "currentVersion": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Terms or deadline are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Agreement network and asset are required",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller must have active authority for a required Funder or Recipient party.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active authority for a required Funder or Recipient party is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Award does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Award was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Award is not accepted or already has an Agreement.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Award must be accepted before agreement creation",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an Agreement from an accepted Award",
+        "tags": [
+          "Agreements"
+        ]
+      }
+    },
+    "/api/agreements/{agreementId}/versions": {
+      "post": {
+        "description": "Creates the next immutable terms version while the Agreement is Draft or PendingAcceptance. This resets its status to Draft, making prior signatures stale.",
+        "operationId": "AgreementsManagementController_createVersion",
+        "parameters": [
+          {
+            "name": "agreementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "terms": {
+                    "type": "object",
+                    "properties": {
+                      "network": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "asset": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "parties": {
+                        "minItems": 1,
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 80
+                            },
+                            "role": {
+                              "type": "string",
+                              "enum": [
+                                "Funder",
+                                "Recipient",
+                                "Verifier"
+                              ]
+                            },
+                            "organizationId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "userId": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "role",
+                            "required"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "milestones": {
+                        "maxItems": 100,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "verificationAuthority": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "deadlines": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        }
+                      },
+                      "cancellationPolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "disputePolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "refundPolicy": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "legalTerms": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "economicTerms": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "network",
+                      "asset",
+                      "parties",
+                      "milestones",
+                      "verificationAuthority",
+                      "deadlines",
+                      "cancellationPolicy",
+                      "disputePolicy",
+                      "refundPolicy",
+                      "legalTerms",
+                      "economicTerms"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "acceptanceExpiresAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "contractArtifactReference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  }
+                },
+                "required": [
+                  "terms",
+                  "acceptanceExpiresAt",
+                  "contractArtifactReference"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Immutable version created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "agreementId": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+                    "version": 2,
+                    "terms": {
+                      "network": "near:testnet",
+                      "asset": "NEAR",
+                      "parties": [
+                        {
+                          "key": "recipient-org",
+                          "role": "Recipient",
+                          "required": true
+                        }
+                      ],
+                      "milestones": [
+                        {
+                          "sequence": 1,
+                          "allocationBaseUnits": "1000000000000000000000000"
+                        }
+                      ],
+                      "verificationAuthority": {
+                        "type": "funder-review"
+                      },
+                      "deadlines": {
+                        "completion": "2027-06-30T23:59:59.000Z"
+                      },
+                      "cancellationPolicy": {
+                        "permitted": true
+                      },
+                      "disputePolicy": {
+                        "process": "mediation"
+                      },
+                      "refundPolicy": {
+                        "unspentFunds": "return-to-funder"
+                      },
+                      "legalTerms": {
+                        "governingLaw": "Bolivia"
+                      },
+                      "economicTerms": {
+                        "allocationBaseUnits": "1000000000000000000000000"
+                      }
+                    },
+                    "termsHash": "db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1",
+                    "economicTermsHash": "08e5fba3d3f5e987e9c56514c7a96ac68f690c51ca379d1426076db2b4951ad8",
+                    "acceptanceExpiresAt": "2027-01-15T18:00:00.000Z",
+                    "contractArtifactReference": "backmint-contracts:escrow-v1"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Terms or deadline are invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Agreement version input is invalid",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "403": {
+            "description": "The caller must have active authority for a required Funder or Recipient party.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active authority for a required Funder or Recipient party is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agreement does not exist."
+          },
+          "409": {
+            "description": "Agreement is no longer amendable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Agreement terms can no longer be amended",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new immutable Agreement version",
+        "tags": [
+          "Agreements"
+        ]
+      }
+    },
+    "/api/agreements/{agreementId}/submissions": {
+      "post": {
+        "description": "Moves the current Draft version to PendingAcceptance. The parties sign this exact immutable version; chain registration and finance integration are separate pending work.",
+        "operationId": "AgreementsManagementController_submitForAcceptance",
+        "parameters": [
+          {
+            "name": "agreementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current version is pending party signatures.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "a38f9153-4d27-4d3a-bc21-40f67691b8ef",
+                    "awardId": "7cba108d-9a33-4c86-b7c8-726dc1536152",
+                    "status": "PendingAcceptance",
+                    "currentVersion": 2
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "403": {
+            "description": "The caller must have active authority for a required Funder or Recipient party.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active authority for a required Funder or Recipient party is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agreement does not exist."
+          },
+          "409": {
+            "description": "Agreement cannot be submitted or its acceptance deadline has passed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Agreement acceptance deadline has passed",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit the current Agreement version for signatures",
+        "tags": [
+          "Agreements"
+        ]
+      }
+    },
     "/api/milestones/{milestoneId}/reviews": {
       "post": {
         "operationId": "MilestoneReviewsController_review",

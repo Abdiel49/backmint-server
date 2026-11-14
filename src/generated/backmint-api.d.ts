@@ -1023,6 +1023,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/awards/{awardId}/agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AgreementsManagementController_createFromAward"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agreements/{agreementId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AgreementsManagementController_createVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agreements/{agreementId}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AgreementsManagementController_submitForAcceptance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/milestones/{milestoneId}/reviews": {
         parameters: {
             query?: never;
@@ -4585,6 +4633,257 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    AgreementsManagementController_createFromAward: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                awardId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    terms: {
+                        network: string;
+                        asset: string;
+                        parties: {
+                            key: string;
+                            role: "Funder" | "Recipient" | "Verifier";
+                            organizationId?: string;
+                            userId?: string;
+                            required: boolean;
+                        }[];
+                        milestones: {
+                            [key: string]: unknown;
+                        }[];
+                        verificationAuthority: {
+                            [key: string]: unknown;
+                        };
+                        deadlines: {
+                            [key: string]: string;
+                        };
+                        cancellationPolicy: {
+                            [key: string]: unknown;
+                        };
+                        disputePolicy: {
+                            [key: string]: unknown;
+                        };
+                        refundPolicy: {
+                            [key: string]: unknown;
+                        };
+                        legalTerms: {
+                            [key: string]: unknown;
+                        };
+                        economicTerms: {
+                            [key: string]: unknown;
+                        };
+                    };
+                    acceptanceExpiresAt: string;
+                    contractArtifactReference: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    AgreementsManagementController_createVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agreementId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    terms: {
+                        network: string;
+                        asset: string;
+                        parties: {
+                            key: string;
+                            role: "Funder" | "Recipient" | "Verifier";
+                            organizationId?: string;
+                            userId?: string;
+                            required: boolean;
+                        }[];
+                        milestones: {
+                            [key: string]: unknown;
+                        }[];
+                        verificationAuthority: {
+                            [key: string]: unknown;
+                        };
+                        deadlines: {
+                            [key: string]: string;
+                        };
+                        cancellationPolicy: {
+                            [key: string]: unknown;
+                        };
+                        disputePolicy: {
+                            [key: string]: unknown;
+                        };
+                        refundPolicy: {
+                            [key: string]: unknown;
+                        };
+                        legalTerms: {
+                            [key: string]: unknown;
+                        };
+                        economicTerms: {
+                            [key: string]: unknown;
+                        };
+                    };
+                    acceptanceExpiresAt: string;
+                    contractArtifactReference: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    AgreementsManagementController_submitForAcceptance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                agreementId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             409: {
                 headers: {

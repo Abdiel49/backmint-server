@@ -15,6 +15,7 @@ import { OrganizationRepresentativeEntity } from '../organizations/organization-
 import { IdentityModule } from '../identity/identity.module.js';
 import { AgreementAcceptanceController } from './agreement-acceptance.controller.js';
 import { AgreementAcceptanceChallengeEntity } from './agreement-acceptance-challenge.entity.js';
+import { AgreementsManagementController } from './agreements-management.controller.js';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { AgreementAcceptanceChallengeEntity } from './agreement-acceptance-chall
       OrganizationRepresentativeEntity,
     ]),
   ],
-  controllers: [AgreementAcceptanceController],
+  controllers: [AgreementAcceptanceController, AgreementsManagementController],
   providers: [AgreementsService],
   exports: [AgreementsService],
 })
