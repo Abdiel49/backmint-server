@@ -35,7 +35,7 @@ services:
     container_name: backmint-clamav
     restart: unless-stopped
     ports:
-      - "${CLAMAV_PORT:-3310}:3310"
+      - "127.0.0.1:${CLAMAV_PORT:-3310}:3310"
     healthcheck:
       test: ["CMD-SHELL", "clamdscan --ping 1 --ping-timeout 2 localhost"]
       interval: 30s
