@@ -248,7 +248,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Implement compliance decisions for country/asset restrictions, KYB/KYC, sanctions/AML dependencies, retention and eligibility gating.
   - Done when: protected actions re-check compliance at submission, award and financial activation without exposing sensitive signals.
   - Failure: FAILED — <UTC timestamp> — prohibited action proceeds or sensitive compliance result leaks — legal/privacy risk — <owner> — suspend action and remediate policy/data access.
-- [ ] Implement `OutcomeClaim` with metric type, value, evidence, verifier and `SelfReported`, `Reviewed`, `IndependentlyVerified` provenance.
+- [~] Implement `OutcomeClaim` with metric type, value, evidence, verifier and `SelfReported`, `Reviewed`, `IndependentlyVerified` provenance.
   - Done when: no aggregate completion percentage or unsupported impact inference is generated.
   - Failure: FAILED — <UTC timestamp> — impact claim presented as verified without evidence — misleading reporting — <owner> — retract projection and correct provenance.
 - [ ] Implement immutable `AuditEvent` for privileged operations, sensitive changes, approvals, exports and authorization denials.

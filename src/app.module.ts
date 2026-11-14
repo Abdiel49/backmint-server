@@ -28,6 +28,7 @@ import { OrganizationsModule } from './organizations/organizations.module.js';
 import { OutboxModule } from './infrastructure/outbox/outbox.module.js';
 import { PublicationsModule } from './publications/publications.module.js';
 import { AuditPersistenceModule } from './audit/audit-persistence.module.js';
+import { OutcomeClaimsModule } from './impact/outcome-claims.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { VerificationModule } from './verification/verification.module.js';
 
@@ -117,6 +118,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     AsyncQueuesModule,
     OutboxModule,
     AuditPersistenceModule,
+    OutcomeClaimsModule,
     ObjectStorageModule,
     NearModule,
     IdentityModule,
