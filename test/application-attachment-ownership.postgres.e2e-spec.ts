@@ -33,6 +33,7 @@ describe.skipIf(process.env.RUN_POSTGRES_INTEGRATION !== 'true')('Application at
     await expect(submit([crypto.randomUUID()])).rejects.toThrow('Application attachment is unavailable');
     await expect(submit([attachments[0].id, attachments[0].id])).rejects.toThrow('identifiers must be unique');
     expect(await connection.getRepository(ApplicationEntity).count({ where: { sourceId: source.id } })).toBe(0);
+    await connection.getRepository(ApplicationAttachmentEntity).update({ id: attachments[0].id }, { status: 'Uploaded' });
     const application = await submit([attachments[0].id]);
     expect(application.status).toBe('PendingFileScan');
     expect((await connection.getRepository(ApplicationAttachmentEntity).findOneByOrFail({ id: attachments[0].id })).applicationId).toBe(application.id);
