@@ -15,6 +15,7 @@ import {
   nearConfig,
   objectStorageConfig,
   observeConfig,
+  walletConfig,
   queuesConfig,
   redisConfig,
 } from './config/configuration.js';
@@ -41,6 +42,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         objectStorageConfig,
         nearConfig,
         observeConfig,
+        walletConfig,
       ],
     }),
     ObserveModule.forRootAsync({
@@ -112,6 +114,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     OutboxModule,
     ObjectStorageModule,
     NearModule,
+    IdentityModule,
     OrganizationsModule,
     HealthModule,
     IdentityModule,

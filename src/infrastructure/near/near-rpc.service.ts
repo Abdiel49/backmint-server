@@ -11,7 +11,7 @@ import { NEAR_RPC_PROVIDER } from './near.constants.js';
 
 type NearRpcProvider = Pick<
   JsonRpcProvider,
-  'getNetworkId' | 'viewAccount' | 'viewTransactionStatus'
+  'getNetworkId' | 'viewAccount' | 'viewTransactionStatus' | 'viewAccessKeyList'
 >;
 
 export type NearContractState = Awaited<
@@ -75,6 +75,13 @@ export class NearRpcService {
         waitUntil: 'FINAL',
       }),
     );
+  }
+
+  async hasAccessKey(accountId: string, publicKey: string): Promise<boolean> {
+    return this.withRetry(async () => {
+      const result = await this.provider.viewAccessKeyList({ accountId });
+      return result.keys.some((key) => key.public_key.toString() === publicKey);
+    });
   }
 
   private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
