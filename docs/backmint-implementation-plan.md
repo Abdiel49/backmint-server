@@ -26,7 +26,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Document every HTTP endpoint in Swagger/OpenAPI with realistic request and success/error examples.
   - Done when: the generated OpenAPI document is versioned and snapshot-tested.
   - Failure: FAILED — <UTC timestamp> — endpoint or example absent from OpenAPI — client contract incomplete — <owner> — add decorators and snapshot.
-- [ ] Use integer minor units or canonical asset base units for all financial amounts.
+- [~] Use integer minor units or canonical asset base units for all financial amounts.
   - Done when: schema, DTOs, services and contract adapters reject floating-point money values.
   - Failure: FAILED — <UTC timestamp> — floating-point amount accepted — balance precision risk — <owner> — replace with integer/base-unit representation.
 - [ ] Never represent a commitment as deposited, an authorization as paid, or AI advice as a human decision.
