@@ -81,15 +81,26 @@ export class OutboxService {
 
     for (const event of events) {
       try {
+        const queueName =
+          event.event_name === 'notification.created'
+            ? AsyncQueueName.Notifications
+            : AsyncQueueName.RetryableDelivery;
+        const jobName =
+          event.event_name === 'notification.created'
+            ? 'deliver-notification'
+            : event.event_name;
         await this.asyncQueues.enqueue(
-          AsyncQueueName.RetryableDelivery,
-          event.event_name,
+          queueName,
+          jobName,
           {
             eventId: event.id,
             aggregateId: event.aggregate_id,
             payload: event.payload,
             correlationId: event.correlation_id,
             causationId: event.causation_id,
+            ...(queueName === AsyncQueueName.Notifications
+              ? { notificationId: event.aggregate_id }
+              : {}),
           },
           { jobId: event.id },
         );
