@@ -82,7 +82,13 @@ describe('AuthSessionService', () => {
     });
 
     await expect(service.authenticate('expired')).resolves.toBeNull();
+    sessions.findOne.mockResolvedValueOnce({
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: new Date(),
+      user: { status: UserStatus.Active },
+    });
+    await expect(service.authenticate('revoked')).resolves.toBeNull();
     await expect(service.authenticate('a'.repeat(129))).resolves.toBeNull();
-    expect(sessions.findOne).toHaveBeenCalledTimes(1);
+    expect(sessions.findOne).toHaveBeenCalledTimes(2);
   });
 });
