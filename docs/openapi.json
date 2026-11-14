@@ -6830,6 +6830,20 @@
               }
             }
           },
+          "403": {
+            "description": "The caller must have active authority for a required Funder or Recipient party.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active authority for a required Funder or Recipient party is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
           "404": {
             "description": "Award does not exist.",
             "content": {
@@ -7098,6 +7112,20 @@
           "401": {
             "description": "A valid bearer session is required."
           },
+          "403": {
+            "description": "The caller must have active authority for a required Funder or Recipient party.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active authority for a required Funder or Recipient party is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
           "404": {
             "description": "Agreement does not exist."
           },
@@ -7161,6 +7189,20 @@
           },
           "401": {
             "description": "A valid bearer session is required."
+          },
+          "403": {
+            "description": "The caller must have active authority for a required Funder or Recipient party.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active authority for a required Funder or Recipient party is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
           },
           "404": {
             "description": "Agreement does not exist."

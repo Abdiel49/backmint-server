@@ -277,7 +277,7 @@ describe.skipIf(!postgresIntegration)(
         recipientId,
         input(recipientId, funderId),
       );
-      await service.submitForAcceptance(agreement.id);
+      await service.submitForAcceptance(agreement.id, recipientId);
       const oldVersion = await connection
         .getRepository(AgreementVersionEntity)
         .findOneByOrFail({ agreementId: agreement.id, version: 1 });
@@ -288,7 +288,7 @@ describe.skipIf(!postgresIntegration)(
           economicTerms: { allocationBaseUnits: '5000', trancheCount: 2 },
         }),
       );
-      await service.submitForAcceptance(agreement.id);
+      await service.submitForAcceptance(agreement.id, recipientId);
       await expect(
         acceptForTest(
           agreement.id,
@@ -403,7 +403,7 @@ describe.skipIf(!postgresIntegration)(
         users[0].id,
         termsInput,
       );
-      await service.submitForAcceptance(agreement.id);
+      await service.submitForAcceptance(agreement.id, users[0].id);
       const version = await connection
         .getRepository(AgreementVersionEntity)
         .findOneByOrFail({ agreementId: agreement.id, version: 1 });
@@ -530,7 +530,7 @@ describe.skipIf(!postgresIntegration)(
         recipientId,
         input(recipientId, funderId),
       );
-      await service.submitForAcceptance(agreement.id);
+      await service.submitForAcceptance(agreement.id, recipientId);
       const version = await connection
         .getRepository(AgreementVersionEntity)
         .findOneByOrFail({ agreementId: agreement.id, version: 1 });
@@ -564,7 +564,7 @@ describe.skipIf(!postgresIntegration)(
         recipientId,
         input(recipientId, funderId),
       );
-      await service.submitForAcceptance(agreement.id);
+      await service.submitForAcceptance(agreement.id, recipientId);
       const version = await connection
         .getRepository(AgreementVersionEntity)
         .findOneByOrFail({ agreementId: agreement.id, version: 1 });

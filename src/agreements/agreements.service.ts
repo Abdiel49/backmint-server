@@ -78,6 +78,14 @@ export class AgreementsService {
       this.validateVersionInput(input);
       validateMilestoneAllocationTotal(input.terms, award.allocation);
       await this.assertPartiesMatchAward(manager, award, input.terms.parties);
+      await this.assertPartyAuthorityForAny(
+        manager,
+        input.terms.parties.filter(
+          (party) => party.required && ['Funder', 'Recipient'].includes(party.role),
+        ),
+        actorUserId,
+        new Date(),
+      );
       const agreement = await manager.getRepository(AgreementEntity).save(
         manager.getRepository(AgreementEntity).create({
           awardId,
@@ -109,6 +117,14 @@ export class AgreementsService {
       });
       validateMilestoneAllocationTotal(input.terms, award.allocation);
       await this.assertPartiesMatchAward(manager, award, input.terms.parties);
+      await this.assertPartyAuthorityForAny(
+        manager,
+        input.terms.parties.filter(
+          (party) => party.required && ['Funder', 'Recipient'].includes(party.role),
+        ),
+        actorUserId,
+        new Date(),
+      );
       const nextVersion = agreement.currentVersion + 1;
       const version = await this.persistVersion(
         manager,
@@ -124,7 +140,10 @@ export class AgreementsService {
     });
   }
 
-  async submitForAcceptance(agreementId: string): Promise<AgreementEntity> {
+  async submitForAcceptance(
+    agreementId: string,
+    actorUserId: string,
+  ): Promise<AgreementEntity> {
     return this.dataSource.transaction(async (manager) => {
       const agreement = await this.lockAgreement(manager, agreementId);
       this.assertTransition(
@@ -132,6 +151,14 @@ export class AgreementsService {
         AgreementStatus.PendingAcceptance,
       );
       const version = await this.currentVersion(manager, agreement);
+      await this.assertPartyAuthorityForAny(
+        manager,
+        version.terms.parties.filter(
+          (party) => party.required && ['Funder', 'Recipient'].includes(party.role),
+        ),
+        actorUserId,
+        new Date(),
+      );
       if (version.acceptanceExpiresAt.getTime() <= Date.now())
         throw new ConflictException('Agreement acceptance deadline has passed');
       agreement.status = AgreementStatus.PendingAcceptance;
@@ -705,6 +732,25 @@ export class AgreementsService {
       throw new ForbiddenException(
         'Active representative membership is required',
       );
+  }
+
+  private async assertPartyAuthorityForAny(
+    manager: EntityManager,
+    parties: AgreementParty[],
+    actorUserId: string,
+    now: Date,
+  ): Promise<void> {
+    for (const party of parties) {
+      try {
+        await this.assertPartyAuthority(manager, party, actorUserId, now);
+        return;
+      } catch (error) {
+        if (!(error instanceof ForbiddenException)) throw error;
+      }
+    }
+    throw new ForbiddenException(
+      'Active authority for a required Funder or Recipient party is required',
+    );
   }
 
   private async currentVersion(

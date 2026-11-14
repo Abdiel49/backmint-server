@@ -12,6 +12,7 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -81,6 +82,10 @@ export class AgreementsManagementController {
         error: 'Unauthorized',
       },
     },
+  })
+  @ApiForbiddenResponse({
+    description: 'The caller must have active authority for a required Funder or Recipient party.',
+    schema: { example: { statusCode: 403, message: 'Active authority for a required Funder or Recipient party is required', error: 'Forbidden' } },
   })
   @ApiNotFoundResponse({
     description: 'Award does not exist.',
@@ -178,6 +183,10 @@ export class AgreementsManagementController {
   @ApiUnauthorizedResponse({
     description: 'A valid bearer session is required.',
   })
+  @ApiForbiddenResponse({
+    description: 'The caller must have active authority for a required Funder or Recipient party.',
+    schema: { example: { statusCode: 403, message: 'Active authority for a required Funder or Recipient party is required', error: 'Forbidden' } },
+  })
   @ApiNotFoundResponse({ description: 'Agreement does not exist.' })
   @ApiConflictResponse({
     description: 'Agreement is no longer amendable.',
@@ -228,6 +237,10 @@ export class AgreementsManagementController {
   @ApiUnauthorizedResponse({
     description: 'A valid bearer session is required.',
   })
+  @ApiForbiddenResponse({
+    description: 'The caller must have active authority for a required Funder or Recipient party.',
+    schema: { example: { statusCode: 403, message: 'Active authority for a required Funder or Recipient party is required', error: 'Forbidden' } },
+  })
   @ApiNotFoundResponse({ description: 'Agreement does not exist.' })
   @ApiConflictResponse({
     description:
@@ -242,8 +255,12 @@ export class AgreementsManagementController {
   })
   async submitForAcceptance(
     @Param('agreementId', ParseUUIDPipe) agreementId: string,
+    @CurrentSession() session: AuthenticatedSession,
   ) {
-    const agreement = await this.agreements.submitForAcceptance(agreementId);
+    const agreement = await this.agreements.submitForAcceptance(
+      agreementId,
+      session.userId,
+    );
     return {
       id: agreement.id,
       awardId: agreement.awardId,
