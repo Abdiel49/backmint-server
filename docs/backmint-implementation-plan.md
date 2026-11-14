@@ -50,7 +50,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Configure CORS, trusted proxy policy, graceful shutdown and structured request/error logging.
   - Done when: only configured origins receive credentialed responses, shutdown closes cleanly, and request IDs are present in logs.
   - Failure: FAILED — <UTC timestamp> — cross-origin or shutdown policy incorrect — security/availability risk — <owner> — correct bootstrap configuration and add integration coverage.
-- [ ] Configure event emitter, scheduler and BullMQ/Redis queues for notifications, malware scans, chain reconciliation, aggregation and retryable delivery.
+- [x] Configure event emitter, scheduler and BullMQ/Redis queues for notifications, malware scans, chain reconciliation, aggregation and retryable delivery.
   - Done when: producers and consumers use named queues, retries/backoff/dead-letter behavior is tested, and no job performs an unbounded retry.
   - Failure: FAILED — <UTC timestamp> — job is lost, duplicated or retries indefinitely — asynchronous consistency risk — <owner> — fix idempotency/retry policy and replay safely.
 - [ ] Configure a transactional outbox for domain events that leave PostgreSQL.
@@ -59,7 +59,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Configure private S3-compatible storage with encryption, bucket policy, restricted credentials, checksum metadata and signed URL generation.
   - Done when: a service can issue scoped, short-lived upload/download URLs without exposing bucket credentials to clients.
   - Failure: FAILED — <UTC timestamp> — object access is public or credentials leak — sensitive-evidence exposure — <owner> — revoke credentials, repair policy and audit access.
-- [ ] Configure the NEAR RPC adapter for testnet, contract ID/version configuration, finality-aware queries and resilient retries.
+- [x] Configure the NEAR RPC adapter for testnet, contract ID/version configuration, finality-aware queries and resilient retries.
   - Done when: the adapter reads network identity, contract state and transaction outcome using configured testnet endpoints.
   - Failure: FAILED — <UTC timestamp> — RPC/contract configuration mismatch — chain state cannot be trusted — <owner> — correct network, contract artifact or provider settings.
 

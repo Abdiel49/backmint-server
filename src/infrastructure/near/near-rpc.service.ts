@@ -98,11 +98,7 @@ export class NearRpcService {
   }
 
   private isRetryable(error: unknown): boolean {
-    if (error instanceof HttpException) {
-      return false;
-    }
-
-    if (!(error instanceof Error)) {
+    if (error instanceof HttpException || !(error instanceof Error)) {
       return false;
     }
 

@@ -29,7 +29,7 @@ describe('Rate limiting (e2e)', () => {
     const moduleFixture = await Test.createTestingModule({
       imports: [RateLimitTestModule],
     }).compile();
-    const app = moduleFixture.createNestApplication<App>({ listenOnInit: false });
+    const app = moduleFixture.createNestApplication<App>();
 
     await app.init();
 

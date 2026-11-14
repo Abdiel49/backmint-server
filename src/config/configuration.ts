@@ -25,6 +25,9 @@ const environmentSchema = z.object({
     .int()
     .positive()
     .default(30),
+  UPLOAD_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
+  FINANCIAL_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
+  PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(30),
   DATABASE_HOST: z.string().min(1),
   DATABASE_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
   DATABASE_NAME: z.string().min(1),
@@ -36,6 +39,28 @@ const environmentSchema = z.object({
     .string()
     .optional()
     .transform((value) => value || undefined),
+  QUEUE_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
+  QUEUE_BACKOFF_DELAY_MS: z.coerce.number().int().positive().default(1_000),
+  QUEUE_COMPLETED_RETENTION_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(86_400),
+  QUEUE_COMPLETED_RETENTION_COUNT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1_000),
+  QUEUE_FAILED_RETENTION_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(604_800),
+  QUEUE_FAILED_RETENTION_COUNT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1_000),
   OBJECT_STORAGE_ENDPOINT: z.url(),
   OBJECT_STORAGE_REGION: z.string().min(1),
   OBJECT_STORAGE_BUCKET: z.string().min(1),
@@ -61,6 +86,14 @@ const environmentSchema = z.object({
   NEAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   NEAR_RPC_URL: z.url(),
   NEAR_CONTRACT_ID: z.string().min(1),
+  OBSERVE_APP_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  OBSERVE_APP_SECRET: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
   NEAR_CONTRACT_VERSION: z
     .string()
     .regex(/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
@@ -80,6 +113,8 @@ const environmentSchema = z.object({
     .string()
     .optional()
     .transform((value) => value || undefined),
+  OBSERVE_APP_KEY: z.string().optional().transform((value) => value || undefined),
+  OBSERVE_APP_SECRET: z.string().optional().transform((value) => value || undefined),
 });
 
 type Environment = z.infer<typeof environmentSchema>;
@@ -136,6 +171,23 @@ export const redisConfig = registerAs('redis', () => {
     host: environment.REDIS_HOST,
     port: environment.REDIS_PORT,
     password: environment.REDIS_PASSWORD,
+  };
+});
+
+export const queuesConfig = registerAs('queues', () => {
+  const environment = getEnvironment();
+
+  return {
+    attempts: environment.QUEUE_ATTEMPTS,
+    backoffDelay: environment.QUEUE_BACKOFF_DELAY_MS,
+    completedRetention: {
+      age: environment.QUEUE_COMPLETED_RETENTION_SECONDS,
+      count: environment.QUEUE_COMPLETED_RETENTION_COUNT,
+    },
+    failedRetention: {
+      age: environment.QUEUE_FAILED_RETENTION_SECONDS,
+      count: environment.QUEUE_FAILED_RETENTION_COUNT,
+    },
   };
 });
 
