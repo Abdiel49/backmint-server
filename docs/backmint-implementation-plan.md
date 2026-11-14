@@ -71,7 +71,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [~] Define enums and transition guards for visibility, intake, lifecycle, application, offer, award, agreement, milestone, finance and verification states.
   - Done when: illegal transitions are rejected by unit tests and transition events are audited.
   - Failure: FAILED — <UTC timestamp> — illegal transition accepted — workflow integrity risk — <owner> — add guard and regression test.
-- [ ] Define immutable snapshot/version primitives for published sources, submitted proposals, agreement terms and evidence submissions.
+- [~] Define immutable snapshot/version primitives for published sources, submitted proposals, agreement terms and evidence submissions.
   - Done when: modifying a source cannot mutate a previously submitted or signed snapshot.
   - Failure: FAILED — <UTC timestamp> — historical snapshot changed — consent/audit integrity loss — <owner> — restore immutable versioning and backfill affected records.
 - [ ] Define domain event, audit event, idempotency key and external integration record primitives.
