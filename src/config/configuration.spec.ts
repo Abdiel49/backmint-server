@@ -33,6 +33,7 @@ describe('validated environment configuration', () => {
     vi.stubEnv('PORT', '3001');
     vi.stubEnv('CORS_ORIGINS', 'https://app.example, https://admin.example');
     vi.stubEnv('DATABASE_PORT', '5433');
+    vi.stubEnv('REDIS_HOST', 'localhost');
 
     expect(appConfig()).toMatchObject({
       port: 3001,

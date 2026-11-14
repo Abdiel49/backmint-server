@@ -43,6 +43,8 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Failure: FAILED — <UTC timestamp> — dependency container unhealthy — local integration unavailable — <owner> — inspect service logs and repair Compose/environment configuration.
 - [x] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
   - Done when: a blank database can be migrated up and down in CI; production startup never mutates schema automatically.
+  - Evidence: [PR #38](https://github.com/Abdiel49/backmint-server/pull/38) passes CI, including blank-database up/down/up verification followed by normal migration execution.
+  - Evidence: `scripts/verify-migrations.js` applies every migration, rolls them all back, and reapplies them against a blank PostgreSQL database. GitHub Actions now runs this job; its first pull-request result is pending.
   - Failure: FAILED — <UTC timestamp> — migration is non-reproducible or destructive — schema deployment unsafe — <owner> — repair migration and test from an empty database.
 - [x] Configure global HTTP rate limiting with stricter policies for authentication, uploads, financial initiation and public embeds.
   - Done when: integration tests prove normal requests pass, abusive requests receive `429`, and health probes remain available.
@@ -56,8 +58,9 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [~] Configure a transactional outbox for domain events that leave PostgreSQL.
   - Done when: a domain write and outbox event commit atomically; a worker can retry delivery without duplicate effects.
   - Failure: FAILED — <UTC timestamp> — event can publish without committed state or be lost after commit — cross-domain inconsistency — <owner> — repair transaction boundary and add failure simulation.
-- [ ] Configure private S3-compatible storage with encryption, bucket policy, restricted credentials, checksum metadata and signed URL generation.
+- [~] Configure private S3-compatible storage with encryption, bucket policy, restricted credentials, checksum metadata and signed URL generation.
   - Done when: a service can issue scoped, short-lived upload/download URLs without exposing bucket credentials to clients.
+  - Evidence: [PR #8](https://github.com/Abdiel49/backmint-server/pull/8) provides scoped short-lived presigned upload/download URLs, server-side encryption, checksum metadata, and configured credentials. Bucket policy enforcement, credential scoping/rotation, object scan completion and live S3 integration verification remain pending.
   - Failure: FAILED — <UTC timestamp> — object access is public or credentials leak — sensitive-evidence exposure — <owner> — revoke credentials, repair policy and audit access.
 - [x] Configure the NEAR RPC adapter for testnet, contract ID/version configuration, finality-aware queries and resilient retries.
   - Done when: the adapter reads network identity, contract state and transaction outcome using configured testnet endpoints.
@@ -85,6 +88,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Implement `User` and `IdentityProvider` persistence, registration/login/recovery flows, sessions/tokens and account security controls.
   - Done when: authenticated identity is established through a verified provider and session revocation/recovery is tested.
+  - Evidence: [PR #21](https://github.com/Abdiel49/backmint-server/pull/21) persists users/verified identities, [PR #23](https://github.com/Abdiel49/backmint-server/pull/23) adds revocable sessions, and [PR #40](https://github.com/Abdiel49/backmint-server/pull/40) adds authenticated current-session and revocation endpoints. Public registration, provider login and account recovery remain pending an external identity-verification integration.
   - Failure: FAILED — <UTC timestamp> — identity/session flow allows impersonation or unrecoverable access — account security risk — <owner> — disable affected flow and remediate.
 - [~] Implement wallet challenge issuance, signature verification, `WalletLink` creation and revocation.
   - Done when: only a verified account owner can link a wallet; reused or expired challenges fail.
@@ -94,19 +98,20 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Failure: FAILED — <UTC timestamp> — organization uniqueness or owner rule fails — identity collision risk — <owner> — repair constraint and reconcile duplicates.
 - [x] Implement organization invitations, `OrganizationMembership`, active-pair uniqueness, acceptance and role lifecycle.
   - Done when: memberships support owner, admin, project manager, evaluator, finance approver, representative and observer policies.
-  - Evidence: `feature/organization-membership-authority` at `2c971a6`; [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is open.
+  - Evidence: [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is merged. Membership persistence, active-pair uniqueness, invitation acceptance and role lifecycle are implemented; HTTP onboarding endpoints remain pending.
   - Failure: FAILED — <UTC timestamp> — membership grants incorrect access — authorization risk — <owner> — revoke excess membership and repair policy.
 - [x] Implement `OrganizationRepresentative` and authority expiration/revocation checks distinct from admin access.
   - Done when: only currently verified representatives may accept legal terms in production mode.
-  - Evidence: `feature/organization-membership-authority` at `2c971a6`; [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is open.
+  - Evidence: [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is merged. Representative authority is distinct from membership roles and supports expiry/revocation checks; acceptance integration remains pending with Agreements.
   - Failure: FAILED — <UTC timestamp> — non-representative can bind an organization — legal authority risk — <owner> — block acceptance and audit prior actions.
-- [x] Implement private verification document uploads, `VerificationCase`, reviewer workflow, expiry and revocation.
+- [~] Implement private verification document uploads, `VerificationCase`, reviewer workflow, expiry and revocation.
   - Done when: verification transitions support `NotStarted`, `Pending`, `NeedsInfo`, `Verified`, `Rejected`, `Expired` and `Revoked` without leaking sensitive denial signals.
-  - Evidence: `feature/verification-workflow` at `6857c01` and `45840fd`; [PR #31](https://github.com/Abdiel49/backmint-server/pull/31). Authenticated service operations, scoped private object storage references, reviewer decision history, self-review prevention, hourly expiry and role/resource access tests.
-  - Limitation: no HTTP endpoints are exposed yet; object storage upload completion/scanning is not verified by the current storage adapter.
+  - Evidence: [PR #31](https://github.com/Abdiel49/backmint-server/pull/31) is merged. Verification cases, scoped private object references, reviewer decision history, self-review prevention, hourly expiry and role/resource access checks are implemented.
+  - Limitation: authenticated HTTP endpoints, actual signed-upload completion, malware scanning and applicant-submission gating remain pending.
   - Failure: FAILED — <UTC timestamp> — verification evidence/status is exposed or transition invalid — privacy/compliance risk — <owner> — restrict access and repair workflow.
-- [ ] Implement authentication and authorization packages with JWT/session guards, CSRF protection for cookie flows, RBAC plus resource-level ABAC.
+- [~] Implement authentication and authorization packages with JWT/session guards, CSRF protection for cookie flows, RBAC plus resource-level ABAC.
   - Done when: every protected endpoint has policy tests for self, teammate, other organization and anonymous users.
+  - Evidence: [PR #40](https://github.com/Abdiel49/backmint-server/pull/40) documents Bearer-session security and tests anonymous, cookie-only, owner and role denials. Cookie authentication is explicitly rejected; CSRF protection is therefore not applicable to these routes. Resource policies for the remaining protected resources and provider-authenticated login remain pending.
   - Failure: FAILED — <UTC timestamp> — protected resource is accessible without valid policy — data/financial authorization risk — <owner> — disable route and repair guard.
 
 ## Phase 3 — Projects, Calls and public opportunity read model
@@ -137,11 +142,11 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Implement `Application`, `ApplicationAnswer`, proposal snapshots, project reference option, attachments and receipt generation for `FundingOffered` sources.
   - Done when: submission stores the source/version and applicant snapshot atomically and immutably.
-  - Evidence: `feature/applications-funding-offers` at `b4de80b`; [PR #33](https://github.com/Abdiel49/backmint-server/pull/33) targets `develop`. Includes atomic Application/Answer persistence, database-enforced immutable snapshots/answers, source-version and applicant snapshots, optional Project reference and unique receipt. Attachments are retained as pending-scan references; no scan completion workflow exists yet. No HTTP route is exposed before authenticated actor context is available.
+  - Evidence: [PR #33](https://github.com/Abdiel49/backmint-server/pull/33) is merged. Includes atomic Application/Answer persistence, database-enforced immutable snapshots/answers, source-version and applicant snapshots, optional Project reference and unique receipt. Attachments are retained as pending-scan references; no scan completion workflow exists yet. No HTTP route is exposed before authenticated actor context is available.
   - Failure: FAILED — <UTC timestamp> — submitted proposal is mutable or missing source version — review integrity risk — <owner> — restore snapshot and block amendment.
 - [~] Enforce application intake, applicant type, country, verification, per-applicant quota, required answers, file scan status and eligibility at submission and again before award.
   - Done when: each rejection has a safe, traceable reason and no sensitive signal is disclosed publicly.
-  - Evidence: submission enforces direction, publication lifecycle/intake/window, available organization type/country rules, required/question-option validation, duplicate and configured per-applicant quotas. Jurisdiction rules fail closed without applicant country; required verification/minimum evidence fail closed because `VerificationCase` is not implemented. Attachments set `PendingFileScan`. Award-time revalidation remains pending because awards do not exist.
+  - Evidence: submission enforces direction, publication lifecycle/intake/window, available organization type/country rules, required/question-option validation, duplicate and configured per-applicant quotas. Jurisdiction rules fail closed without applicant country; verification status is not captured in the applicant snapshot and is not yet integrated. Attachments set `PendingFileScan`. Award-time revalidation remains pending because awards do not exist.
   - Failure: FAILED — <UTC timestamp> — ineligible/duplicate application accepted — selection integrity risk — <owner> — invalidate submission and repair rule evaluation.
 - [~] Implement withdrawal, amendment, resubmission and prior-version retention according to source policy.
   - Done when: amendments never overwrite prior submitted content and disallowed changes are rejected.
@@ -160,17 +165,21 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Implement `EvaluationRound`, `EvaluationAssignment`, conflict declaration, rubric version, queue filtering and reviewer permissions.
   - Done when: reviewers can only view assigned/authorized material and conflicts are recorded before decision.
+  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Organization-scoped rounds, evaluator-role checks, assignment-only queues, conflict declarations, immutable rubric snapshots and queue filters are implemented. Authenticated HTTP routes and award transition remain pending.
   - Evidence: commit `40c71c0` on `feature/human-evaluation-foundations`; [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) targets `develop`. Adds organization-scoped round management, active evaluator-role checks, assignment-only reviewer queues, self/organization conflict prevention, one-time conflict declarations, immutable rubric snapshots and queue filters for source, status, eligibility and reviewed state. Service layer only; authenticated HTTP routes remain pending.
   - Failure: FAILED — <UTC timestamp> — unauthorized review or undeclared conflict — governance/privacy risk — <owner> — revoke assignment and audit access.
 - [~] Implement human `Evaluation` with findings, rubric scores, eligibility decision, recommendation, notes and immutable audit history.
   - Done when: submitted evaluation changes are versioned/audited and human decision remains authoritative.
+  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Human decisions are append-only, versioned and transactionally serialized per assignment; award transition and route-level actor authorization remain pending.
   - Evidence: commit `40c71c0` on `feature/human-evaluation-foundations`; [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) targets `develop`. Persists append-only, versioned human decisions with findings, non-negative rubric scores, eligibility decision, recommendation, notes and separately stored deterministic eligibility output. Database triggers reject evaluation history mutation; review submission is transactionally serialized per assignment. No Award transition is wired.
   - Failure: FAILED — <UTC timestamp> — evaluation is silently mutable or automated — decision integrity risk — <owner> — freeze record and restore audit trail.
-- [ ] Implement `AIReview` as advisory output with model/version, prompt version, source document references, uncertainty flags, consent and retention controls.
+- [~] Implement `AIReview` as advisory output with model/version, prompt version, source document references, uncertainty flags, consent and retention controls.
   - Done when: AI output cites specific source fields and cannot invoke selection, agreement, payment or chain actions.
+  - Evidence: [PR #39](https://github.com/Abdiel49/backmint-server/pull/39) adds immutable advisory records, verified citations to application data, uncertainty flags, explicit individual consent and configurable retention. It has no provider/generation flow; organizational representative consent, PII review and live factual-quality validation remain pending.
   - Failure: FAILED — <UTC timestamp> — AI output is uncited, leaks PII or triggers action — safety/privacy risk — <owner> — disable workflow, purge per policy and remediate prompt/access path.
 - [~] Implement deterministic eligibility findings: `Eligible`, `NeedsReview`, `Ineligible`, `MissingInformation`.
   - Done when: each result is reproducible from stored rules and inputs, separate from subjective reviewer scoring.
+  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Evaluations persist deterministic findings separately from human decisions; complete profile/verification input capture and pre-award re-evaluation remain pending.
   - Evidence: commit `40c71c0` on `feature/human-evaluation-foundations`; [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) targets `develop`. Human evaluation stores output from `evaluateEligibility` using the Application/FundingOffer publication and applicant snapshots and Application answers, separately from the human decision. Verification and other profile data not present in current submission snapshots remain `MissingInformation`; complete input capture and pre-award re-evaluation remain pending.
   - Failure: FAILED — <UTC timestamp> — eligibility cannot be explained/reproduced — decision traceability failure — <owner> — correct evaluator and reprocess affected cases.
 - [ ] Implement `Award` creation from Application or FundingOffer with allocation, asset, recipient, expiry and terms snapshot.
@@ -202,10 +211,12 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Failure: FAILED — <UTC timestamp> — contract interface/network mismatch — unsafe chain interaction — <owner> — disable operations and update verified artifact.
 - [~] Implement `ChainOperation` with idempotency key, operation type, state version, payload hash, requester, transaction hash, error code and lifecycle.
   - Done when: mutable/financial initiations can return `Pending` and retries reconcile the same operation instead of resubmitting blindly.
+  - Evidence: [PR #36](https://github.com/Abdiel49/backmint-server/pull/36) is merged. Operations persist requester-scoped idempotency keys, immutable payload hashes, guarded state transitions and audit events; identical retries return the existing operation. Chain submission, agreement binding and finality reconciliation remain pending.
   - Failure: FAILED — <UTC timestamp> — operation can duplicate submission — double-payment risk — <owner> — freeze operation type and repair idempotency path.
 - Evidence: `feature/chain-operation-intents` persists versioned operations with requester-scoped idempotency, immutable payload hashes, guarded compare-and-swap transitions and audit events. Identical retries return the original operation; no transaction submission code exists. Agreement binding, automatic retry reconciliation and finality remain pending.
 - [~] Implement unsigned transaction intent generation only; require explicit authorized wallet signature for all fund-moving actions.
   - Done when: backend credentials cannot arbitrarily transfer user funds.
+  - Evidence: [PR #36](https://github.com/Abdiel49/backmint-server/pull/36) is merged. Unsigned function-call intent fields are validated for the configured network/contract, and the server has no signer or broadcast path. Authenticated finance API exposure and wallet authorization remain pending.
   - Failure: FAILED — <UTC timestamp> — backend can initiate unrestricted user transfer — custody/security incident — <owner> — revoke credentials and disable transaction path.
 - Evidence: unsigned `FunctionCall` intent fields are validated and restricted to the configured NEAR network and contract. The server has no signing key, signer or broadcast path. Authorized API exposure and explicit wallet authorization depend on agreement artifacts and authenticated finance APIs.
 - [ ] Implement agreement registration/initialization on NEAR and finality-aware confirmation.
@@ -255,6 +266,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Failure: FAILED — <UTC timestamp> — prohibited action proceeds or sensitive compliance result leaks — legal/privacy risk — <owner> — suspend action and remediate policy/data access.
 - [~] Implement `OutcomeClaim` with metric type, value, evidence, verifier and `SelfReported`, `Reviewed`, `IndependentlyVerified` provenance.
   - Done when: no aggregate completion percentage or unsupported impact inference is generated.
+  - Evidence: [PR #34](https://github.com/Abdiel49/backmint-server/pull/34) is merged. Claims retain exact decimal values, evidence key/checksum and distinct provenance; reviews are separate, auditable records and self-review is rejected. HTTP authorization, independent verifier credentials and aggregate reporting controls remain pending.
   - Failure: FAILED — <UTC timestamp> — impact claim presented as verified without evidence — misleading reporting — <owner> — retract projection and correct provenance.
 - [ ] Implement immutable `AuditEvent` for privileged operations, sensitive changes, approvals, exports and authorization denials.
   - Done when: audit records include actor/capacity, target, before/after or event payload hash, timestamp and correlation ID.
@@ -267,6 +279,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Implement notification preferences, inbox persistence, queue-based processing/retries, deduplication and failure monitoring. Email delivery remains unavailable until a mail provider is configured.
   - Done when: notification events are outbox-driven, idempotent and respect user preferences.
+  - Evidence: [PR #32](https://github.com/Abdiel49/backmint-server/pull/32) is merged. Notification inbox/preferences, queue delivery, bounded retries, deduplication and failure states are implemented. Domain event producers and email provider integration remain pending.
   - Failure: FAILED — <UTC timestamp> — notification is lost, duplicated or violates preference — communication/privacy risk — <owner> — replay safely and repair delivery policy.
 - [ ] Implement `ExternalEmbed` with source relation, host organization, allowed origins, theme, mode, status and script version.
   - Done when: embeds expose only public projection/card/list/link and send authenticated submission to Backmint origin.
