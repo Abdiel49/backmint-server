@@ -1,0 +1,65 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`health OpenAPI contract > documents the prefixed path and realistic success and failure examples 1`] = `
+{
+  "/api/health": {
+    "get": {
+      "description": "Returns the server status and verifies the PostgreSQL connection with a database ping.",
+      "operationId": "HealthController_check",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "details": {
+                    "database": {
+                      "status": "up",
+                    },
+                  },
+                  "error": {},
+                  "info": {
+                    "database": {
+                      "status": "up",
+                    },
+                  },
+                  "status": "ok",
+                },
+              },
+            },
+          },
+          "description": "The server and PostgreSQL database are available.",
+        },
+        "503": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "details": {
+                    "database": {
+                      "status": "down",
+                    },
+                  },
+                  "error": {
+                    "database": {
+                      "status": "down",
+                    },
+                  },
+                  "info": {},
+                  "status": "error",
+                },
+              },
+            },
+          },
+          "description": "The PostgreSQL database is unavailable.",
+        },
+      },
+      "summary": "Check server and database availability",
+      "tags": [
+        "Health",
+      ],
+    },
+  },
+}
+`;

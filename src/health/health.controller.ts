@@ -13,7 +13,7 @@ export class HealthController {
   ) {}
 
   @Get()
-  @HealthCheck()
+  @HealthCheck({ swaggerDocumentation: false })
   @ApiOperation({
     summary: 'Check server and database availability',
     description: 'Returns the server status and verifies the PostgreSQL connection with a database ping.',
