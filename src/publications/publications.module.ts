@@ -25,9 +25,15 @@ import {
 import { EvaluationsService } from '../evaluations/evaluations.service.js';
 import { AwardEntity } from './award.entity.js';
 import { AwardsService } from './awards.service.js';
+import { PublicationManagementController } from './publication-management.controller.js';
+import { PublicationManagementService } from './publication-management.service.js';
+import { IdentityModule } from '../identity/identity.module.js';
+import { OrganizationsModule } from '../organizations/organizations.module.js';
 
 @Module({
   imports: [
+    IdentityModule,
+    OrganizationsModule,
     TypeOrmModule.forFeature([
       ProjectEntity,
       ProjectVersionEntity,
@@ -46,13 +52,14 @@ import { AwardsService } from './awards.service.js';
       AwardEntity,
     ]),
   ],
-  controllers: [OpportunityController],
+  controllers: [OpportunityController, PublicationManagementController],
   providers: [
     PublicationService,
     OpportunityService,
     ParticipationService,
     EvaluationsService,
     AwardsService,
+    PublicationManagementService,
   ],
   exports: [
     PublicationService,
@@ -60,6 +67,7 @@ import { AwardsService } from './awards.service.js';
     ParticipationService,
     EvaluationsService,
     AwardsService,
+    PublicationManagementService,
   ],
 })
 export class PublicationsModule {}
