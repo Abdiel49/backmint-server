@@ -44,7 +44,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [x] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
   - Done when: a blank database can be migrated up and down in CI; production startup never mutates schema automatically.
   - Failure: FAILED — <UTC timestamp> — migration is non-reproducible or destructive — schema deployment unsafe — <owner> — repair migration and test from an empty database.
-- [ ] Configure global HTTP rate limiting with stricter policies for authentication, uploads, financial initiation and public embeds.
+- [x] Configure global HTTP rate limiting with stricter policies for authentication, uploads, financial initiation and public embeds.
   - Done when: integration tests prove normal requests pass, abusive requests receive `429`, and health probes remain available.
   - Failure: FAILED — <UTC timestamp> — rate policy is bypassed or blocks health probes — abuse/availability risk — <owner> — correct guard/decorator configuration.
 - [x] Configure CORS, trusted proxy policy, graceful shutdown and structured request/error logging.
