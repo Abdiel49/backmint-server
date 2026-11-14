@@ -75,6 +75,27 @@ describe('OutboxService', () => {
     );
   });
 
+  it('routes notification outbox events to the notifications queue', async () => {
+    const { service, queues } = createOutboxService([
+      {
+        id: 'event-123',
+        event_name: 'notification.created',
+        aggregate_id: 'notification-456',
+        payload: { notificationId: 'notification-456' },
+        correlation_id: 'request-789',
+        causation_id: null,
+      },
+    ]);
+
+    await expect(service.publishPending()).resolves.toBe(1);
+    expect(queues.enqueue).toHaveBeenCalledWith(
+      'notifications',
+      'deliver-notification',
+      expect.objectContaining({ notificationId: 'notification-456' }),
+      { jobId: 'event-123' },
+    );
+  });
+
   it('appends the event through the caller transaction manager', async () => {
     const { service } = createOutboxService([]);
     const savedEvent = { id: 'event-123' };
