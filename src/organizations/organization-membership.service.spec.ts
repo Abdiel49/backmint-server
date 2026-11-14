@@ -103,6 +103,18 @@ describe('OrganizationMembershipService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('does not permit changing a membership to Owner', async () => {
+    const { service } = createHarness();
+
+    await expect(
+      service.changeRole(
+        'owner-1',
+        'membership-1',
+        OrganizationRole.Owner as never,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('accepts an invitation only for the authenticated invitee', async () => {
     const { service, manager } = createHarness();
     manager.findOne.mockImplementation(async (entity, options) => {
@@ -207,6 +219,100 @@ describe('OrganizationMembershipService', () => {
 
     await expect(
       service.inviteMember('project-manager-1', 'org-1', {
+        userId: 'user-2',
+        role: OrganizationRole.Observer,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('allows an active Admin to manage members in their own organization', async () => {
+    const { service, manager } = createHarness();
+    const target = {
+      id: 'membership-1',
+      organizationId: 'org-1',
+      userId: 'member-1',
+      role: OrganizationRole.Observer,
+      status: 'Active',
+    };
+    manager.findOne.mockImplementation(async (entity, options) => {
+      if (entity === OrganizationEntity) {
+        return { id: 'org-1', ownerUserId: 'owner-1' };
+      }
+      if (entity === OrganizationMembershipEntity) {
+        return options.where.id === 'membership-1'
+          ? target
+          : {
+              id: 'admin-membership',
+              organizationId: 'org-1',
+              userId: 'admin-1',
+              role: OrganizationRole.Admin,
+              status: 'Active',
+            };
+      }
+      return null;
+    });
+
+    await expect(
+      service.changeRole('admin-1', 'membership-1', OrganizationRole.Evaluator),
+    ).resolves.toMatchObject({ role: OrganizationRole.Evaluator });
+  });
+
+  it('denies an unrelated user and prevents changing or revoking the owner', async () => {
+    const unrelatedHarness = createHarness();
+    unrelatedHarness.manager.findOne.mockImplementation(async (entity) => {
+      if (entity === OrganizationEntity) {
+        return { id: 'org-1', ownerUserId: 'owner-1' };
+      }
+      if (entity === OrganizationMembershipEntity) return null;
+      return null;
+    });
+    await expect(
+      unrelatedHarness.service.inviteMember('unrelated-1', 'org-1', {
+        userId: 'user-2',
+        role: OrganizationRole.Observer,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    const ownerHarness = createHarness();
+    const ownerMembership = {
+      id: 'owner-membership',
+      organizationId: 'org-1',
+      userId: 'owner-1',
+      role: OrganizationRole.Owner,
+      status: 'Active',
+    };
+    ownerHarness.manager.findOne.mockImplementation(async (entity) => {
+      if (entity === OrganizationEntity) {
+        return { id: 'org-1', ownerUserId: 'owner-1' };
+      }
+      if (entity === OrganizationMembershipEntity) return ownerMembership;
+      return null;
+    });
+    await expect(
+      ownerHarness.service.changeRole(
+        'owner-1',
+        'owner-membership',
+        OrganizationRole.Admin,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      ownerHarness.service.revokeMembership('owner-1', 'owner-membership'),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('denies an owner of another organization from managing this organization', async () => {
+    const { service, manager } = createHarness();
+    manager.findOne.mockImplementation(async (entity) => {
+      if (entity === OrganizationEntity) {
+        return { id: 'org-1', ownerUserId: 'owner-1' };
+      }
+      if (entity === OrganizationMembershipEntity) return null;
+      if (entity === UserEntity) return { id: 'user-2', status: 'Active' };
+      return null;
+    });
+
+    await expect(
+      service.inviteMember('owner-of-org-2', 'org-1', {
         userId: 'user-2',
         role: OrganizationRole.Observer,
       }),

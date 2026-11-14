@@ -17,8 +17,9 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Global delivery rules
 
-- [ ] Keep every feature on a branch created from `develop`, commit each completed feature, and open a PR to `develop`.
+- [x] Keep every feature on a branch created from `develop`, commit each completed feature, and open a PR to `develop`.
   - Done when: branch, commit, PR URL and review state are linked from the task or release record.
+  - Evidence: implemented features have dedicated commits/PRs to `develop`; recent delivery includes merged PRs #38–#41, corrective PR #42 and organization API PR #43, each tracked with its current review/CI state.
   - Failure: FAILED — <UTC timestamp> — workflow evidence is missing — traceability is incomplete — <owner> — create or link the missing artifact.
 - [ ] Keep code, database identifiers, OpenAPI operation names, events and statuses in English.
   - Done when: lint/review finds no non-localized business identifiers outside English terminology.
@@ -44,7 +45,6 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [x] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
   - Done when: a blank database can be migrated up and down in CI; production startup never mutates schema automatically.
   - Evidence: [PR #38](https://github.com/Abdiel49/backmint-server/pull/38) passes CI, including blank-database up/down/up verification followed by normal migration execution.
-  - Evidence: `scripts/verify-migrations.js` applies every migration, rolls them all back, and reapplies them against a blank PostgreSQL database. GitHub Actions now runs this job; its first pull-request result is pending.
   - Failure: FAILED — <UTC timestamp> — migration is non-reproducible or destructive — schema deployment unsafe — <owner> — repair migration and test from an empty database.
 - [x] Configure global HTTP rate limiting with stricter policies for authentication, uploads, financial initiation and public embeds.
   - Done when: integration tests prove normal requests pass, abusive requests receive `429`, and health probes remain available.
@@ -70,6 +70,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Define UUID or ULID primary key policy, UTC timestamp policy, optimistic state version policy and migration naming convention.
   - Done when: every new aggregate migration applies the shared identifiers and timestamps consistently.
+  - Evidence: UUID keys, UTC timestamps and optimistic state versions are used by shared persistence conventions. Existing merged migrations contain historical duplicate timestamps; migration up/down/up passes CI and new migrations must use unique timestamps. The historical migrations are not renamed because existing databases may already have recorded their identities.
   - Failure: FAILED — <UTC timestamp> — aggregate violates persistence convention — audit/migration inconsistency — <owner> — align entity and migration.
 - [~] Define enums and transition guards for visibility, intake, lifecycle, application, offer, award, agreement, milestone, finance and verification states.
   - Done when: illegal transitions are rejected by unit tests and transition events are audited.
@@ -96,10 +97,11 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Failure: FAILED — <UTC timestamp> — wallet control cannot be proven — forged wallet association risk — <owner> — invalidate challenges and repair verification.
 - [~] Implement `Organization`, unique scoped slug, country, type, legal/informal status, visibility and owner selection.
   - Done when: duplicate/invalid organizations are rejected and ownership is auditable.
+  - Evidence: [PR #19](https://github.com/Abdiel49/backmint-server/pull/19) adds organization persistence; [PR #43](https://github.com/Abdiel49/backmint-server/pull/43) adds authenticated create/list APIs and atomic owner membership. Profile updates, owner transfer, email invitations and verification/KYB gates remain pending.
   - Failure: FAILED — <UTC timestamp> — organization uniqueness or owner rule fails — identity collision risk — <owner> — repair constraint and reconcile duplicates.
 - [x] Implement organization invitations, `OrganizationMembership`, active-pair uniqueness, acceptance and role lifecycle.
   - Done when: memberships support owner, admin, project manager, evaluator, finance approver, representative and observer policies.
-  - Evidence: [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is merged. Membership persistence, active-pair uniqueness, invitation acceptance and role lifecycle are implemented; HTTP onboarding endpoints remain pending.
+  - Evidence: [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is merged. Membership persistence, active-pair uniqueness, invitation acceptance and role lifecycle are implemented; [PR #43](https://github.com/Abdiel49/backmint-server/pull/43) adds HTTP create/invite/accept/role-change/revoke routes (CI passed; PR open at this update). Email invitations and HTTP suspension/restoration remain pending.
   - Failure: FAILED — <UTC timestamp> — membership grants incorrect access — authorization risk — <owner> — revoke excess membership and repair policy.
 - [x] Implement `OrganizationRepresentative` and authority expiration/revocation checks distinct from admin access.
   - Done when: only currently verified representatives may accept legal terms in production mode.
@@ -166,13 +168,12 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Implement `EvaluationRound`, `EvaluationAssignment`, conflict declaration, rubric version, queue filtering and reviewer permissions.
   - Done when: reviewers can only view assigned/authorized material and conflicts are recorded before decision.
-  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Organization-scoped rounds, evaluator-role checks, assignment-only queues, conflict declarations, immutable rubric snapshots and queue filters are implemented. Authenticated HTTP routes and award transition remain pending.
-  - Evidence: commit `40c71c0` on `feature/human-evaluation-foundations`; [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) targets `develop`. Adds organization-scoped round management, active evaluator-role checks, assignment-only reviewer queues, self/organization conflict prevention, one-time conflict declarations, immutable rubric snapshots and queue filters for source, status, eligibility and reviewed state. Service layer only; authenticated HTTP routes remain pending.
+  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Organization-scoped rounds, evaluator-role checks, assignment-only queues, conflict declarations, immutable rubric snapshots and queue filters are implemented. Authenticated HTTP routes and the Award transition remain pending.
   - Failure: FAILED — <UTC timestamp> — unauthorized review or undeclared conflict — governance/privacy risk — <owner> — revoke assignment and audit access.
 - [~] Implement human `Evaluation` with findings, rubric scores, eligibility decision, recommendation, notes and immutable audit history.
   - Done when: submitted evaluation changes are versioned/audited and human decision remains authoritative.
-  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Human decisions are append-only, versioned and transactionally serialized per assignment; award transition and route-level actor authorization remain pending.
-  - Evidence: commit `40c71c0` on `feature/human-evaluation-foundations`; [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) targets `develop`. Persists append-only, versioned human decisions with findings, non-negative rubric scores, eligibility decision, recommendation, notes and separately stored deterministic eligibility output. Database triggers reject evaluation history mutation; review submission is transactionally serialized per assignment. No Award transition is wired.
+  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Human decisions are append-only, versioned and transactionally serialized per assignment. Corrective [PR #42](https://github.com/Abdiel49/backmint-server/pull/42) adds an audited publisher selection transition from Shortlisted to Selected, requiring a conflict-cleared human evaluation. Authenticated routes and production orchestration from evaluation through selection to Award remain pending.
+  - Evidence: commit `40c71c0` on `feature/human-evaluation-foundations`; [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) targets `develop`. Persists append-only, versioned human decisions with findings, non-negative rubric scores, eligibility decision, recommendation, notes and separately stored deterministic eligibility output. Database triggers reject evaluation history mutation; review submission is transactionally serialized per assignment. Corrective [PR #42](https://github.com/Abdiel49/backmint-server/pull/42) adds the audited service-layer publisher selection; authenticated selection/Award routes and production orchestration remain pending.
   - Failure: FAILED — <UTC timestamp> — evaluation is silently mutable or automated — decision integrity risk — <owner> — freeze record and restore audit trail.
 - [~] Implement `AIReview` as advisory output with model/version, prompt version, source document references, uncertainty flags, consent and retention controls.
   - Done when: AI output cites specific source fields and cannot invoke selection, agreement, payment or chain actions.
@@ -180,14 +181,15 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Failure: FAILED — <UTC timestamp> — AI output is uncited, leaks PII or triggers action — safety/privacy risk — <owner> — disable workflow, purge per policy and remediate prompt/access path.
 - [~] Implement deterministic eligibility findings: `Eligible`, `NeedsReview`, `Ineligible`, `MissingInformation`.
   - Done when: each result is reproducible from stored rules and inputs, separate from subjective reviewer scoring.
-  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Evaluations persist deterministic findings separately from human decisions; complete profile/verification input capture and pre-award re-evaluation remain pending.
-  - Evidence: commit `40c71c0` on `feature/human-evaluation-foundations`; [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) targets `develop`. Human evaluation stores output from `evaluateEligibility` using the Application/FundingOffer publication and applicant snapshots and Application answers, separately from the human decision. Verification and other profile data not present in current submission snapshots remain `MissingInformation`; complete input capture and pre-award re-evaluation remain pending.
+  - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Evaluations persist deterministic findings separately from human decisions using publication/applicant snapshots and application answers; complete profile/verification input capture and pre-award re-evaluation remain pending.
   - Failure: FAILED — <UTC timestamp> — eligibility cannot be explained/reproduced — decision traceability failure — <owner> — correct evaluator and reprocess affected cases.
-- [ ] Implement `Award` creation from Application or FundingOffer with allocation, asset, recipient, expiry and terms snapshot.
+- [~] Implement `Award` creation from Application or FundingOffer with allocation, asset, recipient, expiry and terms snapshot.
   - Done when: award is not treated as an enforceable payment/deposit and supports accept/decline/expiry transitions.
+  - Evidence: Original [PR #41](https://github.com/Abdiel49/backmint-server/pull/41) introduced service-layer Award creation and reservation. Corrective [PR #42](https://github.com/Abdiel49/backmint-server/pull/42) fixes FundingRequested Awards to name the source publisher as recipient and the offer author as funder, while preserving the already-applied migration identity. Its duplicate timestamp with AIReview is a legacy condition; all new migrations must use unique timestamps. The service persists immutable source/terms snapshots, integer base-unit allocation, expiry, accept/decline/expire states and atomic capacity/budget holds. An audited publisher selection transition now sets `Selected` after a conflict-cleared human evaluation, but authenticated HTTP operations and production selection-to-Award wiring remain pending. Agreement conversion/signatures are pending; an Award does not imply a deposit.
   - Failure: FAILED — <UTC timestamp> — award changes financial state prematurely — financial misrepresentation — <owner> — correct state/event projections.
-- [ ] Serialize capacity slot and total budget reservation in PostgreSQL transactions.
+- [~] Serialize capacity slot and total budget reservation in PostgreSQL transactions.
   - Done when: concurrent approval attempts cannot exceed `maxAwards` or budget; expired/declined awards release reservation exactly once.
+  - Evidence: Original [PR #41](https://github.com/Abdiel49/backmint-server/pull/41) added source-row locking and reservations. Corrective [PR #42](https://github.com/Abdiel49/backmint-server/pull/42) verifies the already-applied migration identity and correct recipient terms. PostgreSQL tests exercise concurrent capacity/budget races and one-time decline/expiry release. Authenticated HTTP decision routes and Agreement conversion are pending.
   - Failure: FAILED — <UTC timestamp> — over-award or double release detected — allocation integrity breach — <owner> — freeze allocations, reconcile and fix transaction locking.
 
 ## Phase 6 — Agreements and terms acceptance

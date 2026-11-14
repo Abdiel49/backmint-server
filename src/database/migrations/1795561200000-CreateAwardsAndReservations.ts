@@ -21,7 +21,20 @@ export class CreateAwardsAndReservations1795561200000 implements MigrationInterf
         RETURN NEW;
       END;
       $$;
-      ALTER TABLE "funding_offers" DROP CONSTRAINT "funding_offers_status_check";
+      DO $$
+      DECLARE status_constraint text;
+      BEGIN
+        FOR status_constraint IN
+          SELECT constraint_row.conname
+          FROM pg_constraint constraint_row
+          WHERE constraint_row.conrelid = '"funding_offers"'::regclass
+            AND constraint_row.contype = 'c'
+            AND pg_get_constraintdef(constraint_row.oid) ILIKE '%status%'
+        LOOP
+          EXECUTE format('ALTER TABLE "funding_offers" DROP CONSTRAINT %I', status_constraint);
+        END LOOP;
+      END;
+      $$;
       ALTER TABLE "funding_offers" ADD CONSTRAINT "CK_funding_offers_status" CHECK ("status" IN ('Submitted', 'UnderReview', 'Accepted', 'Declined', 'Withdrawn', 'Awarded'));
       CREATE TABLE "awards" (
         "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
