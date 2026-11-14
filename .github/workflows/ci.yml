@@ -76,4 +76,7 @@ jobs:
       - run: pnpm test
       - run: pnpm migration:verify
       - run: pnpm migration:run
+      - run: pnpm openapi:generate
+      - run: pnpm openapi:types
+      - run: git diff --exit-code -- docs/openapi.json src/generated/backmint-api.d.ts
       - run: pnpm test:e2e

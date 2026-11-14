@@ -6,7 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { VerificationCaseEntity } from './verification-case.entity.js';
+import type { VerificationCaseEntity } from './verification-case.entity.js';
 
 export const VerificationDocumentScanStatus = {
   PendingUpload: 'PendingUpload',
@@ -29,8 +29,8 @@ export class VerificationDocumentEntity {
   verificationCaseId!: string;
 
   @ManyToOne(
-    () => VerificationCaseEntity,
-    (verificationCase) => verificationCase.documents,
+    'VerificationCaseEntity',
+    (verificationCase: VerificationCaseEntity) => verificationCase.documents,
     {
       onDelete: 'CASCADE',
     },
