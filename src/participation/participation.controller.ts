@@ -81,11 +81,20 @@ export class ParticipationController {
           answers: [],
         },
       },
+      withAttachment: {
+        value: {
+          sourceType: 'Project',
+          sourceId: '8ab31b75-c38c-4be2-a68f-d74c95ee72ae',
+          applicantOrganizationId: 'cb3662f4-d5b7-4ee8-9cf7-858a81a847a7',
+          proposal: { title: 'Rural microgrid' },
+          answers: [{ questionKey: 'project_plan', answer: 'See attached plan', attachmentIds: ['4e38df44-63d1-467a-90d4-bde6bce3e6db'] }],
+        },
+      },
     },
   })
   @ApiCreatedResponse({
     description:
-      'Application submitted and immutable source/applicant snapshots recorded.',
+      'Application submitted with immutable snapshots; Applications with attachments remain PendingFileScan.',
     schema: {
       example: {
         id: '71d94885-9e19-4827-bdbb-3de3d5333e3b',
@@ -98,11 +107,11 @@ export class ParticipationController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'Malformed request or source has the wrong funding direction.',
+    description: 'Malformed request, unavailable or duplicate attachment, or invalid source direction.',
     schema: {
       example: {
         statusCode: 400,
-        message: 'Submission direction does not match source',
+        message: 'Application attachment is unavailable',
         error: 'Bad Request',
       },
     },

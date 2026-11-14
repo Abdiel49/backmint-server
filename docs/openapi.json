@@ -4690,13 +4690,13 @@
             }
           },
           "400": {
-            "description": "The predecessor state, current source policy, eligibility or questionnaire does not allow resubmission.",
+            "description": "The predecessor state, current source policy, eligibility, questionnaire or attachment does not allow resubmission.",
             "content": {
               "application/json": {
                 "schema": {
                   "example": {
                     "statusCode": 400,
-                    "message": "This source does not allow resubmission",
+                    "message": "Application attachment is unavailable",
                     "error": "Bad Request"
                   }
                 }
@@ -6204,6 +6204,25 @@
                     },
                     "answers": []
                   }
+                },
+                "withAttachment": {
+                  "value": {
+                    "sourceType": "Project",
+                    "sourceId": "8ab31b75-c38c-4be2-a68f-d74c95ee72ae",
+                    "applicantOrganizationId": "cb3662f4-d5b7-4ee8-9cf7-858a81a847a7",
+                    "proposal": {
+                      "title": "Rural microgrid"
+                    },
+                    "answers": [
+                      {
+                        "questionKey": "project_plan",
+                        "answer": "See attached plan",
+                        "attachmentIds": [
+                          "4e38df44-63d1-467a-90d4-bde6bce3e6db"
+                        ]
+                      }
+                    ]
+                  }
                 }
               }
             }
@@ -6211,7 +6230,7 @@
         },
         "responses": {
           "201": {
-            "description": "Application submitted and immutable source/applicant snapshots recorded.",
+            "description": "Application submitted with immutable snapshots; Applications with attachments remain PendingFileScan.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6228,13 +6247,13 @@
             }
           },
           "400": {
-            "description": "Malformed request or source has the wrong funding direction.",
+            "description": "Malformed request, unavailable or duplicate attachment, or invalid source direction.",
             "content": {
               "application/json": {
                 "schema": {
                   "example": {
                     "statusCode": 400,
-                    "message": "Submission direction does not match source",
+                    "message": "Application attachment is unavailable",
                     "error": "Bad Request"
                   }
                 }
