@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createIdempotencyRecord } from '../domain/events/event-primitives.js';
 import { ChainOperationService } from './chain-operation.service.js';
 import type { ChainOperationEntity } from './chain-operation.entity.js';
+import { ChainOperationObservationEntity } from './chain-operation-observation.entity.js';
 
 const input = {
   idempotencyKey: 'funding-intent-application-42-v1',
@@ -39,12 +40,29 @@ function createHarness(reservation: {
     findOneBy: vi.fn(async (): Promise<ChainOperationEntity | null> => null),
     findOneByOrFail: vi.fn(async () => operation),
   };
+  const observationRepository = {
+    create: vi.fn((value) => value),
+    findOneBy: vi.fn(async () => null),
+    findOneByOrFail: vi.fn(async (where) => ({
+      id: 'observation-id',
+      ...where,
+    })),
+  };
   const manager = {
-    getRepository: vi.fn(() => repository),
+    getRepository: vi.fn((entity) =>
+      entity === ChainOperationObservationEntity
+        ? observationRepository
+        : repository,
+    ),
     query: vi.fn(async () => [{ id: operation.id }]),
   };
   const dataSource = {
     transaction: vi.fn(async (callback) => callback(manager)),
+    getRepository: vi.fn((entity) =>
+      entity === ChainOperationObservationEntity
+        ? observationRepository
+        : repository,
+    ),
   };
   const audit = {
     reserveIdempotency: vi.fn(async () => reservation),
@@ -57,6 +75,11 @@ function createHarness(reservation: {
       contractId: input.intent.receiverId,
       contractVersion: '1',
     })),
+    getTransactionOutcome: vi.fn(async (transactionHash, signerAccountId) => ({
+      transaction: { hash: transactionHash, signer_id: signerAccountId },
+      transaction_outcome: { block_hash: 'final-block-hash' },
+      status: { SuccessValue: '' },
+    })),
   };
   return {
     service: new ChainOperationService(
@@ -66,6 +89,7 @@ function createHarness(reservation: {
     ),
     operation,
     repository,
+    observationRepository,
     manager,
     dataSource,
     audit,
@@ -168,6 +192,7 @@ describe('ChainOperationService', () => {
       expectedVersion: 1,
       nextState: 'Submitted',
       transactionHash: '8qM2FfHqXoZ1aZyGmVYxT3U4p7o7JX8oCqWn4dD2hGv',
+      signerAccountId: 'alice.testnet',
     });
 
     expect(harness.manager.query).toHaveBeenCalledWith(
@@ -175,5 +200,109 @@ describe('ChainOperationService', () => {
       expect.arrayContaining(['IntentReady', 1, 'Submitted']),
     );
     expect(harness.audit.appendAuditEvent).toHaveBeenCalledOnce();
+  });
+
+  it('requires a signer account when an operation is marked submitted', async () => {
+    const harness = createHarness({ state: 'Reserved', id: 'reservation-id' });
+
+    await expect(
+      harness.service.transition({
+        id: input.requestedBy,
+        expectedState: 'IntentReady',
+        expectedVersion: 1,
+        nextState: 'Submitted',
+        transactionHash: 'tx-hash',
+      }),
+    ).rejects.toThrow('A submitted operation requires a NEAR signer account');
+  });
+
+  it('persists final RPC execution evidence without changing financial operation state', async () => {
+    const harness = createHarness({ state: 'Reserved', id: 'reservation-id' });
+    harness.operation.status = 'Submitted';
+    harness.operation.transactionHash = 'final-tx-hash';
+    harness.operation.signerAccountId = 'alice.testnet';
+    harness.repository.findOneBy.mockResolvedValueOnce(harness.operation);
+    harness.observationRepository.findOneByOrFail.mockResolvedValueOnce({
+      id: 'observation-id',
+      result: 'Succeeded',
+      blockHash: 'final-block-hash',
+    } as never);
+
+    const result = await harness.service.reconcileFinalExecution(
+      harness.operation.id,
+    );
+
+    expect(result.observation.result).toBe('Succeeded');
+    expect(result.observation.blockHash).toBe('final-block-hash');
+    expect(harness.nearRpc.getTransactionOutcome).toHaveBeenCalledWith(
+      'final-tx-hash',
+      'alice.testnet',
+    );
+    expect(harness.manager.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO chain_operation_observations'),
+      expect.arrayContaining(['Succeeded', 'final-block-hash']),
+    );
+    expect(harness.manager.query).not.toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE chain_operations'),
+      expect.anything(),
+    );
+  });
+
+  it('replays an existing execution observation without querying NEAR again', async () => {
+    const harness = createHarness({ state: 'Reserved', id: 'reservation-id' });
+    harness.operation.status = 'Unknown';
+    harness.operation.transactionHash = 'final-tx-hash';
+    harness.operation.signerAccountId = 'alice.testnet';
+    harness.repository.findOneBy.mockResolvedValueOnce(harness.operation);
+    const persisted = {
+      id: 'observation-id',
+      result: 'Failed',
+      blockHash: 'final-block-hash',
+    };
+    harness.observationRepository.findOneBy.mockResolvedValueOnce(
+      persisted as never,
+    );
+
+    const result = await harness.service.reconcileFinalExecution(
+      harness.operation.id,
+    );
+
+    expect(result).toEqual({ observation: persisted, replayed: true });
+    expect(harness.nearRpc.getTransactionOutcome).not.toHaveBeenCalled();
+  });
+
+  it('rejects a final result whose signer does not match the submitted operation', async () => {
+    const harness = createHarness({ state: 'Reserved', id: 'reservation-id' });
+    harness.operation.status = 'Submitted';
+    harness.operation.transactionHash = 'final-tx-hash';
+    harness.operation.signerAccountId = 'alice.testnet';
+    harness.repository.findOneBy.mockResolvedValueOnce(harness.operation);
+    harness.nearRpc.getTransactionOutcome.mockResolvedValueOnce({
+      transaction: { hash: 'final-tx-hash', signer_id: 'mallory.testnet' },
+      transaction_outcome: { block_hash: 'final-block-hash' },
+      status: { SuccessValue: '' },
+    } as never);
+
+    await expect(
+      harness.service.reconcileFinalExecution(harness.operation.id),
+    ).rejects.toThrow('NEAR returned a transaction that does not match');
+  });
+
+  it('does not persist a non-final NEAR execution result', async () => {
+    const harness = createHarness({ state: 'Reserved', id: 'reservation-id' });
+    harness.operation.status = 'Unknown';
+    harness.operation.transactionHash = 'final-tx-hash';
+    harness.operation.signerAccountId = 'alice.testnet';
+    harness.repository.findOneBy.mockResolvedValueOnce(harness.operation);
+    harness.nearRpc.getTransactionOutcome.mockResolvedValueOnce({
+      transaction: { hash: 'final-tx-hash', signer_id: 'alice.testnet' },
+      transaction_outcome: { block_hash: 'observed-block-hash' },
+      status: 'Started',
+    } as never);
+
+    await expect(
+      harness.service.reconcileFinalExecution(harness.operation.id),
+    ).rejects.toThrow('NEAR has not returned a final execution result');
+    expect(harness.manager.query).not.toHaveBeenCalled();
   });
 });
