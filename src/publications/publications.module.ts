@@ -27,10 +27,12 @@ import { AwardEntity } from './award.entity.js';
 import { AwardsService } from './awards.service.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { EvaluationsController } from '../evaluations/evaluations.controller.js';
+import { AuditPersistenceModule } from '../audit/audit-persistence.module.js';
 
 @Module({
   imports: [
     IdentityModule,
+    AuditPersistenceModule,
     TypeOrmModule.forFeature([
       ProjectEntity,
       ProjectVersionEntity,

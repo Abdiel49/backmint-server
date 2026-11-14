@@ -11,7 +11,7 @@ import {
 import { EvaluationsService } from './evaluations.service.js';
 
 describe('EvaluationsService', () => {
-  const service = new EvaluationsService({} as never);
+  const service = new EvaluationsService({} as never, {} as never);
 
   it('requires exactly one submission type for an assignment', async () => {
     await expect(
@@ -86,7 +86,10 @@ describe('EvaluationsService', () => {
 
   it('does not access storage for invalid request data', async () => {
     const transaction = vi.fn();
-    const guarded = new EvaluationsService({ transaction } as never);
+    const guarded = new EvaluationsService(
+      { transaction } as never,
+      {} as never,
+    );
     await expect(
       guarded.assign({
         roundId: 'round',
@@ -172,10 +175,13 @@ describe('EvaluationsService', () => {
     const manager = {
       getRepository: (entity: unknown) => entities.get(entity),
     };
-    const queueService = new EvaluationsService({
-      getRepository: manager.getRepository,
-      manager,
-    } as never);
+    const queueService = new EvaluationsService(
+      {
+        getRepository: manager.getRepository,
+        manager,
+      } as never,
+      {} as never,
+    );
 
     const result = await queueService.reviewerQueue({
       evaluatorUserId: 'reviewer-1',
