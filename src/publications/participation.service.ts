@@ -31,6 +31,7 @@ import {
 import { assertSubmissionDirection } from './publication.validation.js';
 import { assertApplicantAudience, assertApplicantJurisdiction } from './eligibility-policy.js';
 import { ApplicationAttachmentEntity } from './application-attachment.entity.js';
+import { reconcileApplicationScans } from './application-scan-reconciliation.js';
 
 export type ApplicationSubmission = {
   sourceType: PublicationSourceType;
@@ -290,6 +291,11 @@ export class ParticipationService {
         }),
       ),
     );
+    if (pendingFileScan) {
+      await reconcileApplicationScans(manager, application.id);
+      const current = await manager.getRepository(ApplicationEntity).findOneByOrFail({ id: application.id });
+      application.status = current.status;
+    }
     return application;
   }
 

@@ -19,6 +19,7 @@ import { ProjectEntity } from '../src/publications/project.entity.js';
 import { UserEntity } from '../src/identity/user.entity.js';
 import { IdentityProviderEntity } from '../src/identity/identity-provider.entity.js';
 import { OrganizationEntity } from '../src/organizations/organization.entity.js';
+import { ApplicationAttachmentEntity } from '../src/publications/application-attachment.entity.js';
 
 const postgresIntegration = process.env.RUN_POSTGRES_INTEGRATION === 'true';
 
@@ -38,6 +39,7 @@ describe.skipIf(!postgresIntegration)(
           ProjectEntity,
           ApplicationEntity,
           ApplicationAnswerEntity,
+          ApplicationAttachmentEntity,
           FundingOfferEntity,
           AwardEntity,
           EvaluationRoundEntity,
@@ -205,6 +207,19 @@ describe.skipIf(!postgresIntegration)(
         expect(await connection.getRepository(AwardEntity).count({ where: { applicationId: application.id } })).toBe(0);
       }
       await expect(create(0)).resolves.toMatchObject({ state: 'Offered', recipientOrganizationId: organizations[0].id });
+    });
+
+    it('requires linked clean attachments and passed answer scans before reserving an Award', async () => {
+      const { project, applications, users } = await fixture({ maximumAwards: 2, budget: '100' });
+      for (const application of applications) await evaluations.selectApplication({ applicationId: application.id, actorUserId: users[0].id });
+      const attachments = await connection.getRepository(ApplicationAttachmentEntity).save(applications.map((application, index) => ({ uploadedByUserId: users[index + 1].id, organizationId: null, applicationId: application.id, storageKey: `fixture/${crypto.randomUUID()}`, mimeType: 'application/pdf', sizeBytes: '100', checksumSha256: 'a'.repeat(64), status: index ? 'Clean' : 'Quarantined' })));
+      const answers = await connection.getRepository(ApplicationAnswerEntity).save(applications.map((application, index) => ({ applicationId: application.id, questionKey: 'document', answer: 'Plan', attachmentIds: [attachments[index].id], fileScanStatus: index ? 'Pending' : 'Passed' })));
+      const create = (index: number) => service.createFromApplication({ applicationId: applications[index].id, allocation: '50', asset: 'near:testnet:token', expiresAt: new Date(Date.now() + 60_000), actorUserId: users[0].id });
+      await expect(create(0)).rejects.toThrow('require verified scanning');
+      await expect(create(1)).rejects.toThrow('require verified scanning');
+      expect(await connection.getRepository(AwardEntity).count({ where: { sourceId: project.id } })).toBe(0);
+      await connection.getRepository(ApplicationAnswerEntity).update({ id: answers[1].id }, { fileScanStatus: 'Passed' });
+      await expect(create(1)).resolves.toMatchObject({ state: 'Offered' });
     });
 
     it('rejects unverified application attachments before reserving an Award', async () => {

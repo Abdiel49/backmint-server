@@ -8,10 +8,11 @@ describe('ApplicationAttachmentScanProcessor', () => {
 
   function fixture(result: 'clean' | 'infected' = 'clean') {
     const attachment = { id, uploadedByUserId: 'uploader', organizationId: null, storageKey: 'private/file', sizeBytes: String(content.length), checksumSha256: createHash('sha256').update(content).digest('hex'), status: 'Uploaded' };
-    const attachments = { findOneBy: vi.fn().mockResolvedValue(attachment), update: vi.fn().mockResolvedValue({ affected: 1 }) };
+    const attachments = { findOneBy: vi.fn().mockResolvedValue(attachment), findOne: vi.fn().mockResolvedValue(attachment), update: vi.fn().mockResolvedValue({ affected: 1 }) };
     const storage = { getObjectStream: vi.fn(async () => (async function* () { yield content; })()) };
     const scanner = { scan: vi.fn(async (stream: AsyncIterable<Uint8Array>) => { for await (const _chunk of stream) { } return result; }) };
-    return { attachment, attachments, storage, scanner, processor: new ApplicationAttachmentScanProcessor(attachments as never, storage as never, scanner as never) };
+    const dataSource = { transaction: (callback: (manager: unknown) => unknown) => callback({ getRepository: () => attachments }) };
+    return { attachment, attachments, storage, scanner, processor: new ApplicationAttachmentScanProcessor(attachments as never, storage as never, scanner as never, dataSource as never) };
   }
 
   it('marks the exact scanned content clean', async () => {

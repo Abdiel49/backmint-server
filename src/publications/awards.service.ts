@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { ApplicationAnswerEntity, ApplicationEntity, FundingOfferEntity } from './application.entity.js';
 import { AwardEntity } from './award.entity.js';
 import { CallEntity } from './call.entity.js';
@@ -14,6 +14,7 @@ import { PublicationSourceType } from './publication.types.js';
 import type { PublicationSnapshot } from './publication.types.js';
 import { OrganizationEntity } from '../organizations/organization.entity.js';
 import { assertApplicantAudience, assertApplicantJurisdiction } from './eligibility-policy.js';
+import { ApplicationAttachmentEntity } from './application-attachment.entity.js';
 
 type AwardSource = ProjectEntity | CallEntity;
 
@@ -84,8 +85,14 @@ export class AwardsService {
       const answers = await manager.getRepository(ApplicationAnswerEntity).find({
         where: { applicationId: application.id },
       });
-      if (answers.some((answer) => answer.fileScanStatus !== 'NotRequired' || !Array.isArray(answer.attachmentIds) || answer.attachmentIds.length > 0))
+      if (answers.some((answer) => !Array.isArray(answer.attachmentIds) || (answer.attachmentIds.length ? answer.fileScanStatus !== 'Passed' : answer.fileScanStatus !== 'NotRequired')))
         throw new ConflictException('Application attachments require verified scanning before an Award');
+      const attachmentIds = answers.flatMap((answer) => answer.attachmentIds).map((id) => id.toLowerCase());
+      if (attachmentIds.length) {
+        const attachments = await manager.getRepository(ApplicationAttachmentEntity).find({ where: { id: In(attachmentIds), applicationId: application.id, status: 'Clean' } });
+        if (new Set(attachmentIds).size !== attachmentIds.length || attachments.length !== attachmentIds.length)
+          throw new ConflictException('Application attachments require verified scanning before an Award');
+      }
       if (application.applicantOrganizationId) {
         const organization = await manager.getRepository(OrganizationEntity).findOne({
           where: { id: application.applicantOrganizationId, status: 'Active' },
