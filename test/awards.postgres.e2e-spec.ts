@@ -273,12 +273,16 @@ describe.skipIf(!postgresIntegration)(
       });
       expect(award).toMatchObject({
         fundingOfferId: offer.id,
-        recipientUserId: users[1].id,
+        recipientUserId: users[0].id,
         allocation: '75',
         asset: 'near:testnet:token',
         state: 'Offered',
+        termsSnapshot: {
+          recipient: { organizationId: null, userId: users[0].id },
+          funder: { organizationId: null, userId: users[1].id },
+        },
       });
-      await expect(service.accept(award.id, users[1].id)).resolves.toMatchObject({
+      await expect(service.accept(award.id, users[0].id)).resolves.toMatchObject({
         state: 'Accepted',
         acceptedAt: expect.any(Date),
       });

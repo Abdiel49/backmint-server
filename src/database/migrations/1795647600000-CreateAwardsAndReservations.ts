@@ -1,6 +1,6 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateAwardsAndReservations1795561200000 implements MigrationInterface {
+export class CreateAwardsAndReservations1795647600000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE OR REPLACE FUNCTION "reject_submission_snapshot_update"() RETURNS trigger LANGUAGE plpgsql AS $$
