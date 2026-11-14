@@ -1,10 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
-import { SkipThrottle } from '@nestjs/throttler';
+import { SkipAllRateLimits } from '../infrastructure/rate-limit/rate-limit.decorator.js';
 
 @ApiTags('Health')
-@SkipThrottle()
+@SkipAllRateLimits()
 @Controller('health')
 export class HealthController {
   constructor(

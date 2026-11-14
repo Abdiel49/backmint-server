@@ -27,3 +27,13 @@ function skippedPolicies(activePolicy: RateLimitPolicy): Record<string, boolean>
 export function UseRateLimit(policy: RateLimitPolicy): MethodDecorator & ClassDecorator {
   return applyDecorators(SkipThrottle(skippedPolicies(policy)));
 }
+
+export function SkipAllRateLimits(): MethodDecorator & ClassDecorator {
+  return applyDecorators(
+    SkipThrottle(
+      Object.fromEntries(
+        [RateLimitPolicy.Default, ...strictPolicies].map((policy) => [policy, true]),
+      ),
+    ),
+  );
+}
