@@ -1071,6 +1071,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/milestones/{milestoneId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["MilestoneReviewsController_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/organizations": {
         parameters: {
             query?: never;
@@ -1321,6 +1337,11 @@ export interface components {
             network: string;
             recipient: string;
             expiresAt: string;
+        };
+        CreateMilestoneReviewDto: {
+            evidenceVersion: number;
+            verdict: "Approved" | "Rejected" | "ChangesRequested";
+            notes: string;
         };
     };
     responses: never;
@@ -4871,6 +4892,61 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                 };
+            };
+        };
+    };
+    MilestoneReviewsController_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                milestoneId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMilestoneReviewDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

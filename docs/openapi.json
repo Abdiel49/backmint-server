@@ -7233,6 +7233,96 @@
         ]
       }
     },
+    "/api/milestones/{milestoneId}/reviews": {
+      "post": {
+        "operationId": "MilestoneReviewsController_review",
+        "parameters": [
+          {
+            "name": "milestoneId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "e8cf3664-5575-4e06-92a4-c822a873d213",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMilestoneReviewDto"
+              },
+              "examples": {
+                "changesRequested": {
+                  "summary": "Request a missing supporting record",
+                  "value": {
+                    "evidenceVersion": 2,
+                    "verdict": "ChangesRequested",
+                    "notes": "Please include the signed attendance sheet for the second workshop."
+                  }
+                },
+                "approved": {
+                  "summary": "Approve reviewed evidence",
+                  "value": {
+                    "evidenceVersion": 2,
+                    "verdict": "Approved",
+                    "notes": "The submitted report and attendance records satisfy the milestone criteria."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "An immutable decision tied to the exact evidence version and asset checksums.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "29c9a318-d391-45e0-9795-27715e55ee5a",
+                    "milestoneId": "e8cf3664-5575-4e06-92a4-c822a873d213",
+                    "evidenceVersion": 2,
+                    "reviewerUserId": "af8f2cf6-5a61-4c48-a624-d3d90b60b229",
+                    "verdict": "ChangesRequested",
+                    "notes": "Please include the signed attendance sheet for the second workshop.",
+                    "evidenceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "decidedAt": "2026-11-14T13:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The decision payload is invalid."
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "403": {
+            "description": "Only the assigned reviewer may record a decision."
+          },
+          "404": {
+            "description": "The milestone or evidence version was not found."
+          },
+          "409": {
+            "description": "Evidence is stale, unscanned, or the milestone is not awaiting review."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record an assigned reviewer decision for the latest malware-scanned milestone evidence",
+        "tags": [
+          "Milestones"
+        ]
+      }
+    },
     "/api/public/organizations": {
       "get": {
         "operationId": "PublicProfilesController_listOrganizations",
@@ -8570,6 +8660,34 @@
           "network",
           "recipient",
           "expiresAt"
+        ]
+      },
+      "CreateMilestoneReviewDto": {
+        "type": "object",
+        "properties": {
+          "evidenceVersion": {
+            "type": "number",
+            "example": 2,
+            "minimum": 1
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "Approved",
+              "Rejected",
+              "ChangesRequested"
+            ],
+            "example": "ChangesRequested"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Please include the signed attendance sheet for the second workshop."
+          }
+        },
+        "required": [
+          "evidenceVersion",
+          "verdict",
+          "notes"
         ]
       }
     }
