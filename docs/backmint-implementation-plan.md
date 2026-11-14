@@ -77,7 +77,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [~] Define domain event, audit event, idempotency key and external integration record primitives.
   - Done when: privileged and external side effects carry actor, correlation, causation and idempotency metadata.
   - Failure: FAILED — <UTC timestamp> — side effect lacks traceability/idempotency — reconciliation impossible — <owner> — add metadata and replay protection.
-- [ ] Define authorization primitives for acting organization, membership role, representative authority, resource ownership and explicit grants.
+- [x] Define authorization primitives for acting organization, membership role, representative authority, resource ownership and explicit grants.
   - Done when: policies can distinguish a person from their selected organizational capacity.
   - Failure: FAILED — <UTC timestamp> — actor capacity is ambiguous — unauthorized action risk — <owner> — require acting organization and policy evaluation.
 
