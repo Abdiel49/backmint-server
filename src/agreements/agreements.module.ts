@@ -14,12 +14,14 @@ import { OrganizationMembershipEntity } from '../organizations/organization-memb
 import { OrganizationRepresentativeEntity } from '../organizations/organization-representative.entity.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { AgreementAcceptanceController } from './agreement-acceptance.controller.js';
+import { AgreementAcceptanceChallengeEntity } from './agreement-acceptance-challenge.entity.js';
 
 @Module({
   imports: [
     IdentityModule,
     TypeOrmModule.forFeature([
       AgreementEntity,
+      AgreementAcceptanceChallengeEntity,
       AgreementVersionEntity,
       AgreementPartyAcceptanceEntity,
       AgreementFinanceConfirmationEntity,

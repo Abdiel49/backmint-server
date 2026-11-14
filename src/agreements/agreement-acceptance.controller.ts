@@ -11,6 +11,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
+  ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -25,13 +26,13 @@ import {
   CurrentSession,
 } from '../identity/auth-session.guard.js';
 import type { AuthenticatedSession } from '../identity/auth-session.service.js';
+import {
+  AgreementAcceptanceChallengeDto,
+  AgreementAcceptanceChallengeResponseDto,
+  agreementAcceptanceChallengeSchema,
+  agreementAcceptanceSchema,
+} from './agreement-acceptance.dto.js';
 import { AgreementsService } from './agreements.service.js';
-
-const agreementAcceptanceSchema = z.strictObject({
-  expectedVersion: z.number().int().positive(),
-  expectedHash: z.string().regex(/^[a-f0-9]{64}$/i),
-  partyKey: z.string().min(1).max(80),
-});
 
 @ApiTags('Agreements')
 @ApiBearerAuth()
@@ -39,6 +40,73 @@ const agreementAcceptanceSchema = z.strictObject({
 @Controller('agreements')
 export class AgreementAcceptanceController {
   constructor(private readonly agreements: AgreementsService) {}
+
+  @Post(':agreementId/acceptances/challenges')
+  @ApiParam({
+    name: 'agreementId',
+    format: 'uuid',
+    example: 'a38f9153-4d27-4d3a-bc21-40f67691b8ef',
+  })
+  @ApiOperation({
+    summary: 'Issue a one-time NEP-413 agreement acceptance challenge',
+    description:
+      'The challenge binds the exact current agreement version and terms hash, party key, authenticated user, active linked wallet, network, recipient, and expiration.',
+  })
+  @ApiBody({
+    type: AgreementAcceptanceChallengeDto,
+    examples: {
+      currentTerms: {
+        value: {
+          expectedVersion: 2,
+          expectedHash:
+            'db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1',
+          partyKey: 'recipient-org',
+        },
+      },
+    },
+  })
+  @ApiCreatedResponse({
+    description: 'A short-lived NEP-413 acceptance challenge was issued.',
+    type: AgreementAcceptanceChallengeResponseDto,
+    schema: {
+      example: {
+        id: '1d76e1ac-dba2-46b0-8496-a13328682d2b',
+        message:
+          '{"type":"backmint.agreement.acceptance","challengeId":"1d76e1ac-dba2-46b0-8496-a13328682d2b","agreementId":"a38f9153-4d27-4d3a-bc21-40f67691b8ef","version":2,"termsHash":"db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1","partyKey":"recipient-org","userId":"f2625a81-2af8-4c5b-943a-07c4763fce29","walletLinkId":"1ed85f24-fbe3-4a2b-8570-85571d64b76f","accountId":"alice.testnet","publicKey":"ed25519:11111111111111111111111111111111","network":"near:testnet","agreementNetwork":"near:testnet","recipient":"backmint-server","expiresAt":"2026-11-14T12:05:00.000Z"}',
+        nonce: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=',
+        accountId: 'alice.testnet',
+        publicKey: 'ed25519:11111111111111111111111111111111',
+        network: 'near:testnet',
+        recipient: 'backmint-server',
+        expiresAt: '2026-11-14T12:05:00.000Z',
+      },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'The challenge request is invalid.' })
+  @ApiUnauthorizedResponse({ description: 'A valid bearer session is required.' })
+  @ApiForbiddenResponse({
+    description:
+      'The caller is not authorized for this party or has no active linked wallet.',
+  })
+  @ApiNotFoundResponse({ description: 'Agreement does not exist.' })
+  @ApiConflictResponse({
+    description:
+      'The agreement is not accepting, the requested version/hash is stale, the deadline passed, or wallet network does not match.',
+  })
+  async issueAcceptanceChallenge(
+    @Param('agreementId', ParseUUIDPipe) agreementId: string,
+    @Body({ schema: agreementAcceptanceChallengeSchema })
+    body: z.infer<typeof agreementAcceptanceChallengeSchema>,
+    @CurrentSession() session: AuthenticatedSession,
+  ) {
+    return this.agreements.issueAcceptanceChallenge(
+      agreementId,
+      session.userId,
+      body.expectedVersion,
+      body.expectedHash,
+      body.partyKey,
+    );
+  }
 
   @Post(':agreementId/acceptances')
   @ApiParam({
@@ -50,13 +118,20 @@ export class AgreementAcceptanceController {
     summary:
       'Record the authenticated party acceptance of the current agreement version',
     description:
-      'The service checks the exact current version and terms hash, acceptance deadline, named user or active verified representative authority, and required-party completion. This endpoint records consent under the authenticated session; cryptographic wallet signature capture is not yet available.',
+      'Verifies a one-time NEP-413 signature from the active wallet linked to the authenticated user. The signed payload binds the exact current version, terms hash, party key, user, linked account, network, recipient, and challenge expiration before checking legal authority and recording acceptance.',
   })
   @ApiBody({
     schema: {
       type: 'object',
       additionalProperties: false,
-      required: ['expectedVersion', 'expectedHash', 'partyKey'],
+      required: [
+        'expectedVersion',
+        'expectedHash',
+        'partyKey',
+        'challengeId',
+        'nonce',
+        'signature',
+      ],
       properties: {
         expectedVersion: { type: 'integer', minimum: 1, example: 2 },
         expectedHash: {
@@ -66,16 +141,33 @@ export class AgreementAcceptanceController {
             'db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1',
         },
         partyKey: { type: 'string', maxLength: 80, example: 'recipient-org' },
+        challengeId: {
+          type: 'string',
+          format: 'uuid',
+          example: '1d76e1ac-dba2-46b0-8496-a13328682d2b',
+        },
+        nonce: {
+          type: 'string',
+          example: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=',
+        },
+        signature: {
+          type: 'string',
+          example: `${'A'.repeat(86)}==`,
+          description: 'Base64-encoded 64-byte Ed25519 NEP-413 signature.',
+        },
       },
     },
     examples: {
-      acceptCurrentVersion: {
-        summary: 'Accept the current recipient party terms',
+      signedAcceptance: {
+        summary: 'Accept using a signed one-time wallet challenge',
         value: {
           expectedVersion: 2,
           expectedHash:
             'db5b3c2c859e239a50e8a9443b2e1b8cf662b48f9012c08b60e8a3a8c99f45c1',
           partyKey: 'recipient-org',
+          challengeId: '1d76e1ac-dba2-46b0-8496-a13328682d2b',
+          nonce: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=',
+          signature: `${'A'.repeat(86)}==`,
         },
       },
     },
@@ -101,11 +193,12 @@ export class AgreementAcceptanceController {
     },
   })
   @ApiUnauthorizedResponse({
-    description: 'A valid bearer session is required.',
+    description:
+      'The session, challenge, nonce, signature, or linked wallet is invalid.',
     schema: {
       example: {
         statusCode: 401,
-        message: 'A valid bearer session is required',
+        message: 'Agreement acceptance signature is invalid',
         error: 'Unauthorized',
       },
     },
@@ -153,6 +246,9 @@ export class AgreementAcceptanceController {
       body.expectedVersion,
       body.expectedHash,
       body.partyKey,
+      body.challengeId,
+      body.nonce,
+      body.signature,
     );
     return {
       agreementId: agreement.id,
