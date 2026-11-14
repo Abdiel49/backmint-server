@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { IdentityModule } from '../identity/identity.module.js';
 import { ObjectStorageModule } from '../infrastructure/object-storage/object-storage.module.js';
 import { OrganizationEntity } from '../organizations/organization.entity.js';
 import { OrganizationMembershipEntity } from '../organizations/organization-membership.entity.js';
@@ -11,6 +12,7 @@ import { VerificationController } from './verification.controller.js';
 
 @Module({
   imports: [
+    IdentityModule,
     TypeOrmModule.forFeature([
       VerificationCaseEntity,
       VerificationDocumentEntity,
