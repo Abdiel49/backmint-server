@@ -180,6 +180,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Implement `EvaluationRound`, `EvaluationAssignment`, conflict declaration, rubric version, queue filtering and reviewer permissions.
   - Done when: reviewers can only view assigned/authorized material and conflicts are recorded before decision.
+  - Evidence: a corrective migration scopes trigger field checks to the corresponding evaluation table. PostgreSQL integration verifies round status changes and conflict declaration while rejecting changes to protected round identity, assignment identity and recorded conflicts.
   - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. It provides organization-scoped rounds, evaluator-role checks, assignment-only queues, conflict declarations, immutable rubric snapshots and filters. [PR #53](https://github.com/Abdiel49/backmint-server/pull/53) adds authenticated round and assignment management, evaluator queues, conflict declarations and human evaluation submission, deriving actors from Bearer sessions and scoping review to active assignments. Publisher selection is handled by [PR #42](https://github.com/Abdiel49/backmint-server/pull/42); production selection-to-Award orchestration remains pending.
   - Failure: FAILED — <UTC timestamp> — unauthorized review or undeclared conflict — governance/privacy risk — <owner> — revoke assignment and audit access.
 - [~] Implement human `Evaluation` with findings, rubric scores, eligibility decision, recommendation, notes and immutable audit history.
