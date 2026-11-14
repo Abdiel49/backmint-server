@@ -135,7 +135,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Implement `Application`, `ApplicationAnswer`, proposal snapshots, project reference option, attachments and receipt generation for `FundingOffered` sources.
   - Done when: submission stores the source/version and applicant snapshot atomically and immutably.
-  - Evidence: `feature/applications-funding-offers`; atomic Application/Answer persistence, database-enforced immutable snapshots/answers, source-version and applicant snapshots, optional Project reference and unique receipt. Attachments are retained as pending-scan references; no scan completion workflow exists yet. No HTTP route is exposed before authenticated actor context is available.
+  - Evidence: `feature/applications-funding-offers` at `b4de80b`; [PR #33](https://github.com/Abdiel49/backmint-server/pull/33) targets `develop`. Includes atomic Application/Answer persistence, database-enforced immutable snapshots/answers, source-version and applicant snapshots, optional Project reference and unique receipt. Attachments are retained as pending-scan references; no scan completion workflow exists yet. No HTTP route is exposed before authenticated actor context is available.
   - Failure: FAILED — <UTC timestamp> — submitted proposal is mutable or missing source version — review integrity risk — <owner> — restore snapshot and block amendment.
 - [~] Enforce application intake, applicant type, country, verification, per-applicant quota, required answers, file scan status and eligibility at submission and again before award.
   - Done when: each rejection has a safe, traceable reason and no sensitive signal is disclosed publicly.
