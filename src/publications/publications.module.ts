@@ -29,11 +29,13 @@ import { PublicationManagementController } from './publication-management.contro
 import { PublicationManagementService } from './publication-management.service.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { OrganizationsModule } from '../organizations/organizations.module.js';
+import { AuditPersistenceModule } from '../audit/audit-persistence.module.js';
 
 @Module({
   imports: [
     IdentityModule,
     OrganizationsModule,
+    AuditPersistenceModule
     TypeOrmModule.forFeature([
       ProjectEntity,
       ProjectVersionEntity,
