@@ -110,6 +110,7 @@ export class CreateMilestoneEvidenceFoundation1795734000000 implements Migration
         IF NEW."id" <> OLD."id" OR NEW."awardId" <> OLD."awardId" OR NEW."sequence" <> OLD."sequence"
           OR NOT (
             (NEW."currentTermsVersion" = OLD."currentTermsVersion" + 1 AND NEW."stateVersion" = OLD."stateVersion" AND NEW."status" = OLD."status" AND EXISTS (SELECT 1 FROM "milestone_terms_versions" WHERE "milestoneId" = NEW."id" AND "version" = NEW."currentTermsVersion")) OR
+            (NEW."currentTermsVersion" = OLD."currentTermsVersion" AND NEW."stateVersion" = OLD."stateVersion" AND NEW."status" = OLD."status" AND NEW."reviewerUserId" IS NOT DISTINCT FROM OLD."reviewerUserId" AND OLD."onChainMilestoneId" IS NULL AND NEW."onChainMilestoneId" IS NOT NULL AND btrim(NEW."onChainMilestoneId") <> '') OR
             (NEW."currentTermsVersion" = OLD."currentTermsVersion" AND NEW."stateVersion" = OLD."stateVersion" + 1 AND (
             (OLD."status" = 'Pending' AND NEW."status" IN ('Ready', 'Disputed')) OR
             (OLD."status" = 'Ready' AND NEW."status" IN ('Submitted', 'Disputed')) OR
