@@ -42,6 +42,25 @@ $ docker compose up -d
 
 The API reads runtime settings through NestJS `ConfigModule`. Configure S3-compatible private storage and the NEAR testnet contract variables before starting the server. Redis backs durable BullMQ jobs for scans, notifications and chain reconciliation. Start the server with `pnpm start:dev`, then use `GET /api/health` to verify the server and PostgreSQL connection. Swagger UI is available at `http://localhost:3001/docs` and the OpenAPI JSON document at `http://localhost:3001/docs/openapi.json`.
 
+## Database migrations
+
+Application startup never synchronizes the schema or runs pending migrations. Apply schema changes explicitly:
+
+```bash
+pnpm migration:show
+pnpm migration:run
+pnpm migration:revert
+```
+
+Create or generate a timestamped migration with:
+
+```bash
+pnpm migration:create -- src/database/migrations/DescribeChange
+pnpm migration:generate -- src/database/migrations/DescribeChange
+```
+
+Review generated SQL before applying it. Keep migrations reversible and use the shared PostgreSQL configuration from `.env`. The initial baseline is intentionally a no-op until the first domain schema is defined; it verifies CLI discovery and migration bookkeeping without introducing unowned tables.
+
 ## Compile and run the project
 
 ```bash

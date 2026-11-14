@@ -41,7 +41,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Maintain Docker Compose development services for PostgreSQL and Redis with health checks and persistent database volume.
   - Done when: `docker compose up -d` reports healthy dependencies and the e2e suite can connect to both services.
   - Failure: FAILED — <UTC timestamp> — dependency container unhealthy — local integration unavailable — <owner> — inspect service logs and repair Compose/environment configuration.
-- [ ] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
+- [x] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
   - Done when: a blank database can be migrated up and down in CI; production startup never mutates schema automatically.
   - Failure: FAILED — <UTC timestamp> — migration is non-reproducible or destructive — schema deployment unsafe — <owner> — repair migration and test from an empty database.
 - [ ] Configure global HTTP rate limiting with stricter policies for authentication, uploads, financial initiation and public embeds.
