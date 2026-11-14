@@ -1,6 +1,6 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateAuditAndIdempotencyRecords1795042800000
+export class CreateAuditAndIdempotencyRecords1795129200000
   implements MigrationInterface
 {
   public async up(queryRunner: QueryRunner): Promise<void> {
