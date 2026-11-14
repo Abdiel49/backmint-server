@@ -283,8 +283,9 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Done when: notification events are outbox-driven, idempotent and respect user preferences.
   - Evidence: [PR #32](https://github.com/Abdiel49/backmint-server/pull/32) is merged. Notification inbox/preferences, queue delivery, bounded retries, deduplication and failure states are implemented. Domain event producers and email provider integration remain pending.
   - Failure: FAILED — <UTC timestamp> — notification is lost, duplicated or violates preference — communication/privacy risk — <owner> — replay safely and repair delivery policy.
-- [ ] Implement `ExternalEmbed` with source relation, host organization, allowed origins, theme, mode, status and script version.
+- [~] Implement `ExternalEmbed` with source relation, host organization, allowed origins, theme, mode, status and script version.
   - Done when: embeds expose only public projection/card/list/link and send authenticated submission to Backmint origin.
+  - Evidence: [PR pending](https://github.com/Abdiel49/backmint-server/pulls) adds persisted host organization, Project/Call source, HTTPS origin allowlist, theme, display mode, status and script version. Authenticated management requires the active organization owner or an active Admin/ProjectManager membership. Rate-limited public reads require an allowlisted HTTPS `Origin` and return a deliberately enumerated published/disclosed projection; private sources return 404 and applications, evaluations, claims and evidence are excluded. The API's authenticated CTA contract is present, but the hosted script asset and actual cross-origin submission client are not implemented.
   - Failure: FAILED — <UTC timestamp> — embed leaks private data or accepts submission cross-origin — privacy/security risk — <owner> — disable embed and repair origin/projection policy.
 - [ ] Implement public organization/project/call profiles, unlisted link access and disclosure policy.
   - Done when: public reads never expose private applications, reviews, evidence or internal finance records.
