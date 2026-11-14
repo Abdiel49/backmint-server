@@ -94,9 +94,11 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Failure: FAILED — <UTC timestamp> — organization uniqueness or owner rule fails — identity collision risk — <owner> — repair constraint and reconcile duplicates.
 - [x] Implement organization invitations, `OrganizationMembership`, active-pair uniqueness, acceptance and role lifecycle.
   - Done when: memberships support owner, admin, project manager, evaluator, finance approver, representative and observer policies.
+  - Evidence: `feature/organization-membership-authority` at `2c971a6`; [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is open.
   - Failure: FAILED — <UTC timestamp> — membership grants incorrect access — authorization risk — <owner> — revoke excess membership and repair policy.
 - [x] Implement `OrganizationRepresentative` and authority expiration/revocation checks distinct from admin access.
   - Done when: only currently verified representatives may accept legal terms in production mode.
+  - Evidence: `feature/organization-membership-authority` at `2c971a6`; [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is open.
   - Failure: FAILED — <UTC timestamp> — non-representative can bind an organization — legal authority risk — <owner> — block acceptance and audit prior actions.
 - [ ] Implement private verification document uploads, `VerificationCase`, reviewer workflow, expiry and revocation.
   - Done when: verification transitions support `NotStarted`, `Pending`, `NeedsInfo`, `Verified`, `Rejected`, `Expired` and `Revoked` without leaking sensitive denial signals.

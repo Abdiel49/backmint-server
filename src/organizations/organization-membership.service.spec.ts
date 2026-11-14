@@ -275,4 +275,35 @@ describe('OrganizationMembershipService', () => {
       }),
     );
   });
+
+  it('records representative authority revocation independently from membership status', async () => {
+    const { service, manager } = createHarness();
+    manager.findOne.mockImplementation(async (entity) => {
+      if (entity === OrganizationRepresentativeEntity) {
+        return {
+          id: 'authority-1',
+          organizationId: 'org-1',
+          userId: 'user-2',
+          expiresAt: new Date(Date.now() + 60_000),
+          revokedAt: null,
+        };
+      }
+      if (entity === OrganizationEntity) {
+        return { id: 'org-1', ownerUserId: 'owner-1' };
+      }
+      return null;
+    });
+
+    await expect(
+      service.revokeRepresentative(
+        'owner-1',
+        'authority-1',
+        'Registry record withdrawn',
+      ),
+    ).resolves.toMatchObject({
+      id: 'authority-1',
+      revokedByUserId: 'owner-1',
+      revocationReason: 'Registry record withdrawn',
+    });
+  });
 });
