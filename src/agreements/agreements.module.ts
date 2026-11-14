@@ -12,11 +12,16 @@ import { ChainOperationEntity } from '../finance/chain-operation.entity.js';
 import { OrganizationEntity } from '../organizations/organization.entity.js';
 import { OrganizationMembershipEntity } from '../organizations/organization-membership.entity.js';
 import { OrganizationRepresentativeEntity } from '../organizations/organization-representative.entity.js';
+import { IdentityModule } from '../identity/identity.module.js';
+import { AgreementAcceptanceController } from './agreement-acceptance.controller.js';
+import { AgreementAcceptanceChallengeEntity } from './agreement-acceptance-challenge.entity.js';
 
 @Module({
   imports: [
+    IdentityModule,
     TypeOrmModule.forFeature([
       AgreementEntity,
+      AgreementAcceptanceChallengeEntity,
       AgreementVersionEntity,
       AgreementPartyAcceptanceEntity,
       AgreementFinanceConfirmationEntity,
@@ -27,6 +32,7 @@ import { OrganizationRepresentativeEntity } from '../organizations/organization-
       OrganizationRepresentativeEntity,
     ]),
   ],
+  controllers: [AgreementAcceptanceController],
   providers: [AgreementsService],
   exports: [AgreementsService],
 })

@@ -1,4 +1,5 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { KeyPair } from 'near-api-js';
 import { DataSource } from 'typeorm';
 import dataSource from '../src/database/data-source.js';
 import {
@@ -8,7 +9,10 @@ import {
   AgreementTerms,
   AgreementVersionEntity,
 } from '../src/agreements/agreement.entity.js';
+import { AgreementAcceptanceChallengeEntity } from '../src/agreements/agreement-acceptance-challenge.entity.js';
 import { AgreementsService } from '../src/agreements/agreements.service.js';
+import { encodeNep413Payload } from '../src/identity/wallet-link.service.js';
+import { WalletLinkEntity } from '../src/identity/wallet-link.entity.js';
 import { ChainOperationEntity } from '../src/finance/chain-operation.entity.js';
 import { OrganizationEntity } from '../src/organizations/organization.entity.js';
 import { OrganizationMembershipEntity } from '../src/organizations/organization-membership.entity.js';
@@ -35,6 +39,7 @@ describe.skipIf(!postgresIntegration)(
         ...dataSource.options,
         entities: [
           AgreementEntity,
+          AgreementAcceptanceChallengeEntity,
           AgreementVersionEntity,
           AgreementPartyAcceptanceEntity,
           AgreementFinanceConfirmationEntity,
@@ -43,6 +48,7 @@ describe.skipIf(!postgresIntegration)(
           FundingOfferEntity,
           ProjectEntity,
           UserEntity,
+          WalletLinkEntity,
           IdentityProviderEntity,
           ChainOperationEntity,
           OrganizationEntity,
@@ -52,12 +58,74 @@ describe.skipIf(!postgresIntegration)(
         migrations: [],
       });
       await connection.initialize();
-      service = new AgreementsService(connection);
+      service = new AgreementsService(connection, {
+        network: 'testnet',
+        challengeRecipient: 'backmint-test',
+        challengeTtlSeconds: 300,
+      });
     });
 
     afterAll(async () => {
       if (connection?.isInitialized) await connection.destroy();
     });
+
+    const signingWallets = new Map<
+      string,
+      { keyPair: ReturnType<typeof KeyPair.fromRandom> }
+    >();
+
+    async function acceptForTest(
+      agreementId: string,
+      actorUserId: string,
+      expectedVersion: number,
+      expectedHash: string,
+      partyKey: string,
+    ) {
+      let signingWallet = signingWallets.get(actorUserId);
+      if (!signingWallet) {
+        const keyPair = KeyPair.fromRandom('ed25519');
+        await connection.getRepository(WalletLinkEntity).save({
+          userId: actorUserId,
+          accountId: `${randomUUID().replaceAll('-', '')}.testnet`,
+          network: 'testnet',
+          publicKey: keyPair.getPublicKey().toString(),
+          verifiedAt: new Date(),
+          revokedAt: null,
+        });
+        signingWallet = { keyPair };
+        signingWallets.set(actorUserId, signingWallet);
+      }
+      const challenge = await service.issueAcceptanceChallenge(
+        agreementId,
+        actorUserId,
+        expectedVersion,
+        expectedHash,
+        partyKey,
+      );
+      const nonce = Buffer.from(challenge.nonce, 'base64');
+      const digest = createHash('sha256')
+        .update(
+          encodeNep413Payload(
+            challenge.message,
+            nonce,
+            challenge.recipient,
+          ),
+        )
+        .digest();
+      const signature = Buffer.from(
+        signingWallet.keyPair.sign(digest).signature,
+      ).toString('base64');
+      return service.accept(
+        agreementId,
+        actorUserId,
+        expectedVersion,
+        expectedHash,
+        partyKey,
+        challenge.id,
+        challenge.nonce,
+        signature,
+      );
+    }
 
     async function fixture() {
       const users = await connection
@@ -222,7 +290,7 @@ describe.skipIf(!postgresIntegration)(
       );
       await service.submitForAcceptance(agreement.id);
       await expect(
-        service.accept(
+        acceptForTest(
           agreement.id,
           recipientId,
           1,
@@ -234,7 +302,7 @@ describe.skipIf(!postgresIntegration)(
         .getRepository(AgreementVersionEntity)
         .findOneByOrFail({ agreementId: agreement.id, version: 2 });
       await expect(
-        service.accept(
+        acceptForTest(
           agreement.id,
           otherUserId,
           2,
@@ -243,7 +311,7 @@ describe.skipIf(!postgresIntegration)(
         ),
       ).rejects.toThrow('named user party');
       await expect(
-        service.accept(
+        acceptForTest(
           agreement.id,
           recipientId,
           2,
@@ -252,7 +320,7 @@ describe.skipIf(!postgresIntegration)(
         ),
       ).rejects.toThrow('hash');
       await expect(
-        service.accept(
+        acceptForTest(
           agreement.id,
           recipientId,
           2,
@@ -261,7 +329,7 @@ describe.skipIf(!postgresIntegration)(
         ),
       ).resolves.toMatchObject({ status: 'PendingAcceptance' });
       await expect(
-        service.accept(
+        acceptForTest(
           agreement.id,
           recipientId,
           2,
@@ -270,7 +338,7 @@ describe.skipIf(!postgresIntegration)(
         ),
       ).resolves.toMatchObject({ status: 'PendingAcceptance' });
       await expect(
-        service.accept(agreement.id, funderId, 2, current.termsHash, 'funder'),
+        acceptForTest(agreement.id, funderId, 2, current.termsHash, 'funder'),
       ).resolves.toMatchObject({ status: 'Accepted' });
     });
 
@@ -339,7 +407,7 @@ describe.skipIf(!postgresIntegration)(
       const version = await connection
         .getRepository(AgreementVersionEntity)
         .findOneByOrFail({ agreementId: agreement.id, version: 1 });
-      await service.accept(
+      await acceptForTest(
         agreement.id,
         users[0].id,
         1,
@@ -347,7 +415,7 @@ describe.skipIf(!postgresIntegration)(
         'recipient',
       );
       await expect(
-        service.accept(
+        acceptForTest(
           agreement.id,
           users[1].id,
           1,
@@ -382,7 +450,7 @@ describe.skipIf(!postgresIntegration)(
         revocationReason: null,
       });
       await expect(
-        service.accept(
+        acceptForTest(
           agreement.id,
           users[2].id,
           1,
@@ -414,7 +482,7 @@ describe.skipIf(!postgresIntegration)(
         revocationReason: null,
       });
       await expect(
-        service.accept(
+        acceptForTest(
           agreement.id,
           users[3].id,
           1,
@@ -466,14 +534,14 @@ describe.skipIf(!postgresIntegration)(
       const version = await connection
         .getRepository(AgreementVersionEntity)
         .findOneByOrFail({ agreementId: agreement.id, version: 1 });
-      await service.accept(
+      await acceptForTest(
         agreement.id,
         recipientId,
         1,
         version.termsHash,
         'recipient',
       );
-      await service.accept(
+      await acceptForTest(
         agreement.id,
         funderId,
         1,
@@ -500,14 +568,14 @@ describe.skipIf(!postgresIntegration)(
       const version = await connection
         .getRepository(AgreementVersionEntity)
         .findOneByOrFail({ agreementId: agreement.id, version: 1 });
-      await service.accept(
+      await acceptForTest(
         agreement.id,
         recipientId,
         1,
         version.termsHash,
         'recipient',
       );
-      await service.accept(
+      await acceptForTest(
         agreement.id,
         funderId,
         1,
