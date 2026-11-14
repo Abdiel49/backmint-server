@@ -35,10 +35,10 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 0 — Foundation and delivery environment
 
-- [ ] Maintain typed, validated environment configuration for application, PostgreSQL, Redis, S3-compatible object storage, NEAR RPC, CORS, rate limits and observability.
+- [x] Maintain typed, validated environment configuration for application, PostgreSQL, Redis, S3-compatible object storage, NEAR RPC, CORS, rate limits and observability.
   - Done when: startup fails with actionable validation errors for missing/invalid required values and no application service reads `process.env` directly.
   - Failure: FAILED — <UTC timestamp> — configuration validation or injection failed — service cannot start safely — <owner> — fix schema/defaults and add regression test.
-- [ ] Maintain Docker Compose development services for PostgreSQL and Redis with health checks and persistent database volume.
+- [x] Maintain Docker Compose development services for PostgreSQL and Redis with health checks and persistent database volume.
   - Done when: `docker compose up -d` reports healthy dependencies and the e2e suite can connect to both services.
   - Failure: FAILED — <UTC timestamp> — dependency container unhealthy — local integration unavailable — <owner> — inspect service logs and repair Compose/environment configuration.
 - [ ] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
