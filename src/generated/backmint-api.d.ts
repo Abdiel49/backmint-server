@@ -5019,6 +5019,14 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
             401: {
                 headers: {
                     [name: string]: unknown;

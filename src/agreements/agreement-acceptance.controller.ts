@@ -118,7 +118,7 @@ export class AgreementAcceptanceController {
     summary:
       'Record the authenticated party acceptance of the current agreement version',
     description:
-      'Verifies a one-time NEP-413 signature from the active wallet linked to the authenticated user. The signed payload binds the exact current version, terms hash, party key, user, linked account, network, recipient, and challenge expiration before checking legal authority and recording acceptance.',
+      'Verifies a one-time NEP-413 signature bound to the current version and authorized party. The final required acceptance atomically creates the operational milestones from the signed terms.',
   })
   @ApiBody({
     schema: {
@@ -183,11 +183,11 @@ export class AgreementAcceptanceController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'The request body is invalid.',
+    description: 'The request body or signed milestone schedule is invalid, or the assigned reviewer is inactive.',
     schema: {
       example: {
         statusCode: 400,
-        message: ['expectedVersion must be a positive integer'],
+        message: 'Milestone reviewer must be an active user',
         error: 'Bad Request',
       },
     },
@@ -225,7 +225,7 @@ export class AgreementAcceptanceController {
   })
   @ApiConflictResponse({
     description:
-      'The agreement is not accepting, the version/hash is stale, the deadline passed, or the party has already accepted.',
+      'The agreement is not accepting, the version/hash is stale, the deadline passed, the party has already accepted, or operational milestones already exist.',
     schema: {
       example: {
         statusCode: 409,

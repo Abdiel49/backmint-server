@@ -16,6 +16,7 @@ import { IdentityModule } from '../identity/identity.module.js';
 import { AgreementAcceptanceController } from './agreement-acceptance.controller.js';
 import { AgreementAcceptanceChallengeEntity } from './agreement-acceptance-challenge.entity.js';
 import { AgreementsManagementController } from './agreements-management.controller.js';
+import { MilestoneEntity, MilestoneTermsVersionEntity } from '../milestones/milestone.entity.js';
 
 @Module({
   imports: [
@@ -31,6 +32,8 @@ import { AgreementsManagementController } from './agreements-management.controll
       OrganizationEntity,
       OrganizationMembershipEntity,
       OrganizationRepresentativeEntity,
+      MilestoneEntity,
+      MilestoneTermsVersionEntity,
     ]),
   ],
   controllers: [AgreementAcceptanceController, AgreementsManagementController],

@@ -151,7 +151,7 @@ export class AgreementsManagementController {
             { key: 'recipient-org', role: 'Recipient', required: true },
           ],
           milestones: [
-            { sequence: 1, allocationBaseUnits: '1000000000000000000000000' },
+            { sequence: 1, allocationBaseUnits: '1000000000000000000000000', acceptanceCriteria: { deliverable: 'Commissioned solar installation' }, reviewerUserId: 'a621a439-b8ae-450e-9e08-94f635a61dce', dueAt: '2027-06-01T12:00:00.000Z' },
           ],
           verificationAuthority: { type: 'funder-review' },
           deadlines: { completion: '2027-06-30T23:59:59.000Z' },
@@ -221,7 +221,7 @@ export class AgreementsManagementController {
   @ApiOperation({
     summary: 'Submit the current Agreement version for signatures',
     description:
-      'Moves the current Draft version to PendingAcceptance. The parties sign this exact immutable version; chain registration and finance integration are separate pending work.',
+      'Moves the current Draft version to PendingAcceptance. Each milestone must specify a consecutive sequence, positive allocationBaseUnits, nonempty acceptanceCriteria and reviewerUserId. The economic terms require allocationBaseUnits. The parties sign this exact immutable version.',
   })
   @ApiOkResponse({
     description: 'Current version is pending party signatures.',
@@ -242,6 +242,10 @@ export class AgreementsManagementController {
     schema: { example: { statusCode: 403, message: 'Active authority for a required Funder or Recipient party is required', error: 'Forbidden' } },
   })
   @ApiNotFoundResponse({ description: 'Agreement does not exist.' })
+  @ApiBadRequestResponse({
+    description: 'The milestone schedule or Agreement allocation is invalid.',
+    schema: { example: { statusCode: 400, message: 'Milestone allocations cannot exceed the Agreement allocation', error: 'Bad Request' } },
+  })
   @ApiConflictResponse({
     description:
       'Agreement cannot be submitted or its acceptance deadline has passed.',
