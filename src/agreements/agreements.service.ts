@@ -25,6 +25,7 @@ import {
 import { CallEntity } from '../publications/call.entity.js';
 import { ProjectEntity } from '../publications/project.entity.js';
 import { WalletLinkEntity } from '../identity/wallet-link.entity.js';
+import { MilestoneEntity, MilestoneTermsVersionEntity } from '../milestones/milestone.entity.js';
 import { encodeNep413Payload } from '../identity/wallet-link.service.js';
 import { AgreementAcceptanceChallengeEntity } from './agreement-acceptance-challenge.entity.js';
 import {
@@ -159,6 +160,10 @@ export class AgreementsService {
         actorUserId,
         new Date(),
       );
+      await this.assertMilestoneReviewers(manager, version.terms);
+      const award = await manager.findOneByOrFail(AwardEntity, { id: agreement.awardId });
+      if (BigInt(version.terms.economicTerms.allocationBaseUnits as string) > BigInt(award.allocation))
+        throw new BadRequestException('Agreement allocation cannot exceed the accepted Award allocation');
       if (version.acceptanceExpiresAt.getTime() <= Date.now())
         throw new ConflictException('Agreement acceptance deadline has passed');
       agreement.status = AgreementStatus.PendingAcceptance;
@@ -410,10 +415,51 @@ export class AgreementsService {
         where: { agreementId, version: expectedVersion },
       });
       const acceptedKeys = new Set(acceptances.map((item) => item.partyKey));
-      if (requiredParties.every((item) => acceptedKeys.has(item.key)))
+      if (requiredParties.every((item) => acceptedKeys.has(item.key))) {
+        await this.materializeMilestones(manager, agreement, version, actorUserId);
         agreement.status = AgreementStatus.Accepted;
+      }
       return manager.save(agreement);
     });
+  }
+
+  private parseMilestones(terms: AgreementTerms) {
+    if (terms.milestones.length === 0) throw new BadRequestException('Agreement requires at least one milestone');
+    const agreementAmount = terms.economicTerms.allocationBaseUnits;
+    if (typeof agreementAmount !== 'string' || !/^[1-9]\d*$/.test(agreementAmount))
+      throw new BadRequestException('Agreement allocationBaseUnits must be a positive integer string');
+    const milestones = terms.milestones.map((item, index) => {
+      const { sequence, allocationBaseUnits, acceptanceCriteria, dueAt, reviewerUserId } = item;
+      if (sequence !== index + 1 || typeof allocationBaseUnits !== 'string' || !/^[1-9]\d*$/.test(allocationBaseUnits) || !acceptanceCriteria || typeof acceptanceCriteria !== 'object' || Array.isArray(acceptanceCriteria) || Object.keys(acceptanceCriteria).length === 0 || typeof reviewerUserId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reviewerUserId) || (dueAt !== undefined && (typeof dueAt !== 'string' || !Number.isFinite(Date.parse(dueAt))))) {
+        throw new BadRequestException('Each milestone requires a consecutive sequence, positive allocationBaseUnits, acceptanceCriteria and reviewerUserId');
+      }
+      return { sequence, amount: allocationBaseUnits, acceptanceCriteria: acceptanceCriteria as Record<string, unknown>, reviewerUserId, dueAt: dueAt ? new Date(dueAt as string) : null };
+    });
+    if (milestones.reduce((total, item) => total + BigInt(item.amount), 0n) > BigInt(agreementAmount))
+      throw new BadRequestException('Milestone allocations cannot exceed the Agreement allocation');
+    return milestones;
+  }
+
+  private async materializeMilestones(manager: EntityManager, agreement: AgreementEntity, version: AgreementVersionEntity, actorUserId: string) {
+    const terms = this.parseMilestones(version.terms);
+    await this.assertMilestoneReviewers(manager, version.terms);
+    const award = await manager.findOneByOrFail(AwardEntity, { id: agreement.awardId });
+    if (BigInt(version.terms.economicTerms.allocationBaseUnits as string) > BigInt(award.allocation))
+      throw new BadRequestException('Agreement allocation cannot exceed the accepted Award allocation');
+    validateMilestoneAllocationTotal(version.terms, award.allocation);
+    if (await manager.count(MilestoneEntity, { where: { awardId: agreement.awardId } }))
+      throw new ConflictException('Award already has operational milestones');
+    for (const item of terms) {
+      const milestone = await manager.save(MilestoneEntity, { awardId: agreement.awardId, sequence: item.sequence, reviewerUserId: item.reviewerUserId });
+      await manager.save(MilestoneTermsVersionEntity, { milestoneId: milestone.id, version: 1, amount: item.amount, acceptanceCriteria: item.acceptanceCriteria, reviewerUserId: item.reviewerUserId, dueAt: item.dueAt, createdByUserId: actorUserId });
+    }
+  }
+
+  private async assertMilestoneReviewers(manager: EntityManager, terms: AgreementTerms) {
+    for (const item of this.parseMilestones(terms)) {
+      if (!await manager.findOne(UserEntity, { where: { id: item.reviewerUserId, status: 'Active' } }))
+        throw new BadRequestException('Milestone reviewer must be an active user');
+    }
   }
 
   async confirmFundingFromChain(

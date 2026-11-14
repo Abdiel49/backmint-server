@@ -6668,7 +6668,7 @@
     },
     "/api/agreements/{agreementId}/acceptances": {
       "post": {
-        "description": "Verifies a one-time NEP-413 signature from the active wallet linked to the authenticated user. The signed payload binds the exact current version, terms hash, party key, user, linked account, network, recipient, and challenge expiration before checking legal authority and recording acceptance.",
+        "description": "Verifies a one-time NEP-413 signature bound to the current version and authorized party. The final required acceptance atomically creates the operational milestones from the signed terms.",
         "operationId": "AgreementAcceptanceController_accept",
         "parameters": [
           {
@@ -6761,15 +6761,13 @@
             }
           },
           "400": {
-            "description": "The request body is invalid.",
+            "description": "The request body or signed milestone schedule is invalid, or the assigned reviewer is inactive.",
             "content": {
               "application/json": {
                 "schema": {
                   "example": {
                     "statusCode": 400,
-                    "message": [
-                      "expectedVersion must be a positive integer"
-                    ],
+                    "message": "Milestone reviewer must be an active user",
                     "error": "Bad Request"
                   }
                 }
@@ -6819,7 +6817,7 @@
             }
           },
           "409": {
-            "description": "The agreement is not accepting, the version/hash is stale, the deadline passed, or the party has already accepted.",
+            "description": "The agreement is not accepting, the version/hash is stale, the deadline passed, the party has already accepted, or operational milestones already exist.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7274,7 +7272,12 @@
                       "milestones": [
                         {
                           "sequence": 1,
-                          "allocationBaseUnits": "1000000000000000000000000"
+                          "allocationBaseUnits": "1000000000000000000000000",
+                          "acceptanceCriteria": {
+                            "deliverable": "Commissioned solar installation"
+                          },
+                          "reviewerUserId": "a621a439-b8ae-450e-9e08-94f635a61dce",
+                          "dueAt": "2027-06-01T12:00:00.000Z"
                         }
                       ],
                       "verificationAuthority": {
@@ -7370,7 +7373,7 @@
     },
     "/api/agreements/{agreementId}/submissions": {
       "post": {
-        "description": "Moves the current Draft version to PendingAcceptance. The parties sign this exact immutable version; chain registration and finance integration are separate pending work.",
+        "description": "Moves the current Draft version to PendingAcceptance. Each milestone must specify a consecutive sequence, positive allocationBaseUnits, nonempty acceptanceCriteria and reviewerUserId. The economic terms require allocationBaseUnits. The parties sign this exact immutable version.",
         "operationId": "AgreementsManagementController_submitForAcceptance",
         "parameters": [
           {
@@ -7395,6 +7398,20 @@
                     "awardId": "7cba108d-9a33-4c86-b7c8-726dc1536152",
                     "status": "PendingAcceptance",
                     "currentVersion": 2
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The milestone schedule or Agreement allocation is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Milestone allocations cannot exceed the Agreement allocation",
+                    "error": "Bad Request"
                   }
                 }
               }

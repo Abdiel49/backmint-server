@@ -51,7 +51,7 @@ export class AgreementVersionInputDto {
         },
       ],
       milestones: [
-        { sequence: 1, allocationBaseUnits: '1000000000000000000000000' },
+        { sequence: 1, allocationBaseUnits: '1000000000000000000000000', acceptanceCriteria: { deliverable: 'Commissioned solar installation' }, reviewerUserId: 'a621a439-b8ae-450e-9e08-94f635a61dce', dueAt: '2027-06-01T12:00:00.000Z' },
       ],
       verificationAuthority: { type: 'funder-review' },
       deadlines: { completion: '2027-06-30T23:59:59.000Z' },

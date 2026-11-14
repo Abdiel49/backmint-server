@@ -25,6 +25,7 @@ import {
 import { ProjectEntity } from '../src/publications/project.entity.js';
 import { UserEntity } from '../src/identity/user.entity.js';
 import { IdentityProviderEntity } from '../src/identity/identity-provider.entity.js';
+import { MilestoneEntity, MilestoneTermsVersionEntity } from '../src/milestones/milestone.entity.js';
 
 const postgresIntegration = process.env.RUN_POSTGRES_INTEGRATION === 'true';
 
@@ -54,6 +55,8 @@ describe.skipIf(!postgresIntegration)(
           OrganizationEntity,
           OrganizationMembershipEntity,
           OrganizationRepresentativeEntity,
+          MilestoneEntity,
+          MilestoneTermsVersionEntity,
         ],
         migrations: [],
       });
@@ -183,7 +186,7 @@ describe.skipIf(!postgresIntegration)(
             required: true,
           },
         ],
-        milestones: [{ key: 'delivery', dueAt: '2027-01-01T00:00:00.000Z' }],
+        milestones: [{ sequence: 1, allocationBaseUnits: '5000', acceptanceCriteria: { deliverable: 'Completed work' }, reviewerUserId: funderId, dueAt: '2027-01-01T00:00:00.000Z' }],
         verificationAuthority: { kind: 'independent-review' },
         deadlines: { acceptance: '2027-01-01T00:00:00.000Z' },
         cancellationPolicy: { noticeDays: 14 },
@@ -270,6 +273,54 @@ describe.skipIf(!postgresIntegration)(
       ).rejects.toThrow('cannot exceed the accepted Award allocation');
     });
 
+    it('rejects incomplete or overallocated milestone schedules before requesting signatures', async () => {
+      const { awardId, recipientId, funderId } = await fixture();
+      const agreement = await service.createFromAward(awardId, recipientId, input(recipientId, funderId, {
+        milestones: [{ sequence: 1, allocationBaseUnits: '4000', reviewerUserId: funderId }],
+      }));
+      await expect(service.submitForAcceptance(agreement.id, recipientId)).rejects.toThrow('acceptanceCriteria');
+      await service.createVersion(agreement.id, recipientId, input(recipientId, funderId, {
+        economicTerms: { allocationBaseUnits: '3000' },
+        milestones: [{ sequence: 1, allocationBaseUnits: '4000', acceptanceCriteria: { deliverable: 'Completed work' }, reviewerUserId: funderId }],
+      }));
+      await expect(service.submitForAcceptance(agreement.id, recipientId)).rejects.toThrow('cannot exceed the Agreement allocation');
+      expect(await connection.getRepository(MilestoneEntity).count({ where: { awardId } })).toBe(0);
+    });
+
+    it('rolls back final acceptance if operational milestones already exist', async () => {
+      const { awardId, recipientId, funderId } = await fixture();
+      const agreement = await service.createFromAward(awardId, recipientId, input(recipientId, funderId));
+      await service.submitForAcceptance(agreement.id, recipientId);
+      const version = await connection.getRepository(AgreementVersionEntity).findOneByOrFail({ agreementId: agreement.id, version: 1 });
+      await acceptForTest(agreement.id, recipientId, 1, version.termsHash, 'recipient');
+      await connection.getRepository(MilestoneEntity).save({ awardId, sequence: 1 });
+      await expect(acceptForTest(agreement.id, funderId, 1, version.termsHash, 'funder')).rejects.toThrow('already has operational milestones');
+      const current = await connection.getRepository(AgreementEntity).findOneByOrFail({ id: agreement.id });
+      expect(current.status).toBe('PendingAcceptance');
+      expect(await connection.getRepository(AgreementPartyAcceptanceEntity).count({ where: { agreementId: agreement.id } })).toBe(1);
+      expect(await connection.getRepository(MilestoneEntity).count({ where: { awardId } })).toBe(1);
+    });
+
+    it('materializes two milestones from the accepted amended version', async () => {
+      const { awardId, recipientId, funderId } = await fixture();
+      const agreement = await service.createFromAward(awardId, recipientId, input(recipientId, funderId));
+      await service.createVersion(agreement.id, recipientId, input(recipientId, funderId, {
+        milestones: [
+          { sequence: 1, allocationBaseUnits: '3000', acceptanceCriteria: { result: 'First delivery' }, reviewerUserId: funderId },
+          { sequence: 2, allocationBaseUnits: '2000', acceptanceCriteria: { result: 'Second delivery' }, reviewerUserId: funderId },
+        ],
+      }));
+      await service.submitForAcceptance(agreement.id, recipientId);
+      const version = await connection.getRepository(AgreementVersionEntity).findOneByOrFail({ agreementId: agreement.id, version: 2 });
+      await acceptForTest(agreement.id, recipientId, 2, version.termsHash, 'recipient');
+      await acceptForTest(agreement.id, funderId, 2, version.termsHash, 'funder');
+      const milestones = await connection.getRepository(MilestoneEntity).find({ where: { awardId }, order: { sequence: 'ASC' } });
+      expect(milestones.map((item) => item.sequence)).toEqual([1, 2]);
+      const terms = await Promise.all(milestones.map((item) => connection.getRepository(MilestoneTermsVersionEntity).findOneByOrFail({ milestoneId: item.id, version: 1 })));
+      expect(terms.map((item) => item.amount)).toEqual(['3000', '2000']);
+      expect(terms.map((item) => item.acceptanceCriteria)).toEqual([{ result: 'First delivery' }, { result: 'Second delivery' }]);
+    });
+
     it('requires exact current version/hash, authorized party, and all required acceptances', async () => {
       const { awardId, recipientId, funderId, otherUserId } = await fixture();
       const agreement = await service.createFromAward(
@@ -340,6 +391,11 @@ describe.skipIf(!postgresIntegration)(
       await expect(
         acceptForTest(agreement.id, funderId, 2, current.termsHash, 'funder'),
       ).resolves.toMatchObject({ status: 'Accepted' });
+      const milestones = await connection.getRepository(MilestoneEntity).find({ where: { awardId } });
+      expect(milestones).toHaveLength(1);
+      expect(milestones[0]).toMatchObject({ sequence: 1, reviewerUserId: funderId, currentTermsVersion: 1 });
+      const milestoneTerms = await connection.getRepository(MilestoneTermsVersionEntity).findOneByOrFail({ milestoneId: milestones[0].id, version: 1 });
+      expect(milestoneTerms).toMatchObject({ amount: '5000', reviewerUserId: funderId, acceptanceCriteria: { deliverable: 'Completed work' } });
     });
 
     it('requires verified, active representative authority for organization parties', async () => {
