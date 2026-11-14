@@ -101,6 +101,35 @@ export function validatePublication(
     }
   }
 
+  const eligibility = input.eligibilityRule;
+  if (eligibility) {
+    if (
+      !eligibility.audienceTypes.length ||
+      eligibility.audienceTypes.some((item) => !item.trim())
+    ) {
+      throw new BadRequestException(
+        'Eligibility rules require a non-empty audience',
+      );
+    }
+    if (
+      input.audienceTypes?.length &&
+      eligibility.audienceTypes.some(
+        (item) => !input.audienceTypes?.includes(item),
+      )
+    ) {
+      throw new BadRequestException(
+        'Eligibility audiences must be included in the publication audience',
+      );
+    }
+    const allowed = eligibility.allowedJurisdictions ?? [];
+    const excluded = eligibility.excludedJurisdictions ?? [];
+    if (allowed.some((item) => excluded.includes(item))) {
+      throw new BadRequestException(
+        'A jurisdiction cannot be both allowed and excluded',
+      );
+    }
+  }
+
   if (sourceType === 'Project') {
     if (!input.objectives?.length) {
       throw new BadRequestException(
@@ -185,20 +214,6 @@ export function validatePublication(
       throw new BadRequestException('Fixed awards exceed the overall budget');
     }
 
-    if (input.eligibilityRule && !input.eligibilityRule.audienceTypes.length) {
-      throw new BadRequestException('Eligibility rules require an audience');
-    }
-
-    if (
-      input.eligibilityRule?.audienceTypes.some(
-        (type) => !input.audienceTypes?.includes(type),
-      )
-    ) {
-      throw new BadRequestException(
-        'Eligibility audiences must be included in the Call audience',
-      );
-    }
-
     if (input.questionnaire) {
       const ids = new Set<string>();
       const orders = new Set<number>();
@@ -241,6 +256,16 @@ export function validatePublication(
 
     const policy = input.opportunityPolicy;
 
+    if (
+      policy?.maxAwards !== undefined &&
+      input.maximumAwards !== undefined &&
+      policy.maxAwards !== input.maximumAwards
+    ) {
+      throw new BadRequestException(
+        'Opportunity award quota must match the Call maximum awards',
+      );
+    }
+
     for (const count of [
       policy?.maxApplicationsPerApplicant,
       policy?.maxAwards,
@@ -260,6 +285,44 @@ export function validatePublication(
     ) {
       throw new BadRequestException(
         'Selection window opening must precede closing',
+      );
+    }
+
+    for (const value of [
+      policy?.selectionWindowOpensAt,
+      policy?.selectionWindowClosesAt,
+    ]) {
+      if (value !== undefined && Number.isNaN(new Date(value).getTime())) {
+        throw new BadRequestException(
+          'Selection window dates must be valid timestamps',
+        );
+      }
+    }
+    if (
+      policy?.selectionWindowOpensAt &&
+      input.intakeOpensAt &&
+      new Date(policy.selectionWindowOpensAt) < new Date(input.intakeOpensAt)
+    ) {
+      throw new BadRequestException(
+        'Selection cannot open before intake opens',
+      );
+    }
+    if (
+      policy?.selectionWindowOpensAt &&
+      input.intakeClosesAt &&
+      new Date(policy.selectionWindowOpensAt) < new Date(input.intakeClosesAt)
+    ) {
+      throw new BadRequestException(
+        'Selection cannot open before intake closes',
+      );
+    }
+    if (
+      policy?.selectionWindowClosesAt &&
+      input.intakeClosesAt &&
+      new Date(policy.selectionWindowClosesAt) > new Date(input.intakeClosesAt)
+    ) {
+      throw new BadRequestException(
+        'Selection cannot close after intake closes',
       );
     }
   }

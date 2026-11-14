@@ -33,6 +33,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { VerificationModule } from './verification/verification.module.js';
 import { ChainOperationsModule } from './finance/chain-operations.module.js';
 import { AIReviewModule } from './ai-review/ai-review.module.js';
+import { EligibilityAdminModule } from './publications/eligibility-admin.module.js';
 import { ParticipationModule } from './participation/participation.module.js';
 import { AgreementsModule } from './agreements/agreements.module.js';
 
@@ -134,6 +135,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     VerificationModule,
     ChainOperationsModule,
     AIReviewModule,
+    EligibilityAdminModule,
     ParticipationModule,
     AgreementsModule,
   ],

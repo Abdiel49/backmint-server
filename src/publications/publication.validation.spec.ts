@@ -137,4 +137,54 @@ describe('publication validation', () => {
       ),
     ).toThrow('Fixed awards exceed the overall budget');
   });
+
+  it('rejects contradictory audience, award quota, and selection dates during publication validation', () => {
+    const call = {
+      ...project,
+      sourceType: PublicationSourceType.Call,
+      direction: FundingDirection.FundingOffered,
+      audienceTypes: ['Community'],
+      supportTypes: ['Grant'],
+      maximumAwards: 3,
+      intakeOpensAt: '2026-12-01T00:00:00.000Z',
+      intakeClosesAt: '2027-01-01T00:00:00.000Z',
+    } as PublicationSnapshot;
+    expect(() =>
+      validatePublication(
+        { ...call, eligibilityRule: { audienceTypes: ['Company'] } },
+        'Call',
+      ),
+    ).toThrow('Eligibility audiences must be included');
+    expect(() =>
+      validatePublication(
+        { ...call, opportunityPolicy: { maxAwards: 2 } },
+        'Call',
+      ),
+    ).toThrow('must match the Call maximum awards');
+    expect(() =>
+      validatePublication(
+        {
+          ...call,
+          opportunityPolicy: {
+            selectionWindowOpensAt: '2027-01-01T00:00:00.000Z',
+            selectionWindowClosesAt: '2027-01-02T00:00:00.000Z',
+          },
+        },
+        'Call',
+      ),
+    ).toThrow('Selection cannot close after intake closes');
+    expect(() =>
+      validatePublication(
+        {
+          ...call,
+          eligibilityRule: {
+            audienceTypes: ['Community'],
+            allowedJurisdictions: ['BO'],
+            excludedJurisdictions: ['BO'],
+          },
+        },
+        'Call',
+      ),
+    ).toThrow('cannot be both allowed and excluded');
+  });
 });
