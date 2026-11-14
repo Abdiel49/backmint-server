@@ -46,9 +46,7 @@ describe('organizational authorization', () => {
   );
 
   it('requires current representative authority for legal acceptance', () => {
-    expect(
-      authorize({ ...base, action: 'agreement.accept' }),
-    ).toMatchObject({
+    expect(authorize({ ...base, action: 'agreement.accept' })).toMatchObject({
       allowed: false,
       reason: 'RepresentativeAuthorityRequired',
     });
@@ -128,5 +126,26 @@ describe('organizational authorization', () => {
         resourceOwnerUserId: 'user-1',
       }),
     ).toMatchObject({ allowed: true, reason: 'ResourceOwner' });
+  });
+
+  it('denies unrelated owners and organization roles outside their policy', () => {
+    expect(
+      authorize({
+        userId: 'user-2',
+        action: 'resource.read',
+        actingOrganizationId: 'org-1',
+        resourceOwnerUserId: 'user-1',
+      }),
+    ).toMatchObject({ allowed: false, reason: 'MembershipMismatch' });
+    expect(
+      authorize({
+        ...base,
+        action: 'finance.approve',
+        membership: {
+          ...base.membership!,
+          role: OrganizationRole.ProjectManager,
+        },
+      }),
+    ).toMatchObject({ allowed: false, reason: 'InsufficientRole' });
   });
 });

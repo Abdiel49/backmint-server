@@ -19,7 +19,8 @@ async function bootstrap() {
   app.use((request: Request, response: Response, next: NextFunction) => {
     const suppliedRequestId = request.headers['x-request-id'];
     const requestId =
-      typeof suppliedRequestId === 'string' && /^[A-Za-z0-9._-]{1,128}$/.test(suppliedRequestId)
+      typeof suppliedRequestId === 'string' &&
+      /^[A-Za-z0-9._-]{1,128}$/.test(suppliedRequestId)
         ? suppliedRequestId
         : randomUUID();
     Object.assign(request, { id: requestId });
@@ -37,8 +38,10 @@ async function bootstrap() {
     .setTitle('Backmint API')
     .setDescription('Backmint server API documentation')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
+  const documentFactory = () =>
+    SwaggerModule.createDocument(app, swaggerConfig);
 
   SwaggerModule.setup(
     configService.getOrThrow<string>('app.swaggerPath'),

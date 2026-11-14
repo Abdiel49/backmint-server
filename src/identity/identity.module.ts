@@ -10,6 +10,7 @@ import { WalletChallengeEntity } from './wallet-challenge.entity.js';
 import { WalletLinkEntity } from './wallet-link.entity.js';
 import { WalletLinkService } from './wallet-link.service.js';
 import { NearModule } from '../infrastructure/near/near.module.js';
+import { AuthSessionController } from './auth-session.controller.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NearModule } from '../infrastructure/near/near.module.js';
     AuthSessionService,
     AuthSessionGuard,
   ],
+  controllers: [AuthSessionController],
   exports: [
     IdentityService,
     WalletLinkService,
