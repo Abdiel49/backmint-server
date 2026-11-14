@@ -160,7 +160,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Implement `AIReview` as advisory output with model/version, prompt version, source document references, uncertainty flags, consent and retention controls.
   - Done when: AI output cites specific source fields and cannot invoke selection, agreement, payment or chain actions.
   - Failure: FAILED — <UTC timestamp> — AI output is uncited, leaks PII or triggers action — safety/privacy risk — <owner> — disable workflow, purge per policy and remediate prompt/access path.
-- [ ] Implement deterministic eligibility findings: `Eligible`, `NeedsReview`, `Ineligible`, `MissingInformation`.
+- [~] Implement deterministic eligibility findings: `Eligible`, `NeedsReview`, `Ineligible`, `MissingInformation`.
   - Done when: each result is reproducible from stored rules and inputs, separate from subjective reviewer scoring.
   - Failure: FAILED — <UTC timestamp> — eligibility cannot be explained/reproduced — decision traceability failure — <owner> — correct evaluator and reprocess affected cases.
 - [ ] Implement `Award` creation from Application or FundingOffer with allocation, asset, recipient, expiry and terms snapshot.
