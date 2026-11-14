@@ -41,11 +41,15 @@ function createWalletService(claimAffected = 1) {
       return operation(manager as never);
     }),
   };
-  const nearRpc = { hasAccessKey: vi.fn(async () => true) };
+  const nearRpc = { hasFullAccessKey: vi.fn(async () => true) };
   const service = new WalletLinkService(
     dataSource as never,
     nearRpc as never,
-    { challengeRecipient: 'backmint-server', challengeTtlSeconds: 300 } as never,
+    {
+      challengeRecipient: 'backmint-server',
+      challengeTtlSeconds: 300,
+      network: 'testnet',
+    } as never,
   );
 
   return { service, challenge, nonce, dataSource, nearRpc, savedChallenge };
@@ -77,6 +81,7 @@ describe('encodeNep413Payload', () => {
 
     expect(challenge.nonce).toHaveLength(44);
     expect(challenge.recipient).toBe('backmint-server');
+    expect(challenge.network).toBe('testnet');
     expect(challenge.expiresAt.getTime()).toBeGreaterThan(Date.now());
     expect(persisted.nonceHash).toHaveLength(64);
     expect(persisted.message).toContain('alice.testnet');
@@ -100,9 +105,10 @@ describe('encodeNep413Payload', () => {
     expect(link).toMatchObject({
       userId: 'user-id',
       accountId: 'alice.testnet',
+      network: 'testnet',
       publicKey: keyPair.publicKey.toString(),
     });
-    expect(nearRpc.hasAccessKey).toHaveBeenCalledWith(
+    expect(nearRpc.hasFullAccessKey).toHaveBeenCalledWith(
       'alice.testnet',
       keyPair.publicKey.toString(),
     );

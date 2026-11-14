@@ -10,7 +10,7 @@ import {
 import { UserEntity } from './user.entity.js';
 
 @Entity('wallet_links')
-@Index('UQ_wallet_links_active_account', ['accountId'], {
+@Index('UQ_wallet_links_active_account', ['network', 'accountId'], {
   unique: true,
   where: '"revokedAt" IS NULL',
 })
@@ -27,6 +27,9 @@ export class WalletLinkEntity {
 
   @Column({ type: 'varchar', length: 64 })
   accountId!: string;
+
+  @Column({ type: 'varchar', length: 16 })
+  network!: string;
 
   @Column({ type: 'varchar', length: 96 })
   publicKey!: string;

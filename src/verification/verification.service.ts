@@ -244,7 +244,17 @@ export class VerificationService {
     actorUserId: string,
     caseId: string,
   ): Promise<VerificationCaseEntity> {
-    return this.getAuthorizedCase(actorUserId, caseId, 'resource.read');
+    const verificationCase = await this.getAuthorizedCase(
+      actorUserId,
+      caseId,
+      'resource.read',
+    );
+    return (
+      (await this.cases.findOne({
+        where: { id: verificationCase.id },
+        relations: { documents: true },
+      })) ?? verificationCase
+    );
   }
 
   async createDocumentDownload(

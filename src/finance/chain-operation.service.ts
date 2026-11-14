@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { AuditPersistenceService } from '../audit/audit-persistence.service.js';
 import { createIdempotencyRecord } from '../domain/events/event-primitives.js';
 import { NearRpcService } from '../infrastructure/near/near-rpc.service.js';
+import { ChainOperationObservationEntity } from './chain-operation-observation.entity.js';
 import {
   ChainOperationEntity,
   type ChainOperationStatus,
@@ -166,6 +167,7 @@ export class ChainOperationService {
     expectedVersion: number;
     nextState: ChainOperationStatus;
     transactionHash?: string;
+    signerAccountId?: string;
     errorCode?: string;
   }): Promise<ChainOperationEntity> {
     if (!allowedTransitions[input.expectedState].includes(input.nextState)) {
@@ -175,6 +177,11 @@ export class ChainOperationService {
     }
     if (input.nextState === 'Submitted' && !input.transactionHash) {
       throw new TypeError('A submitted operation requires a transaction hash');
+    }
+    if (input.nextState === 'Submitted' && !input.signerAccountId?.trim()) {
+      throw new TypeError(
+        'A submitted operation requires a NEAR signer account',
+      );
     }
     return this.dataSource.transaction(async (manager) => {
       const existing = await manager
@@ -187,7 +194,9 @@ export class ChainOperationService {
         `UPDATE chain_operations
           SET status = $4, "stateVersion" = "stateVersion" + 1,
               "transactionHash" = COALESCE($5, "transactionHash"),
-              "errorCode" = $6, "updatedAt" = NOW()
+              "errorCode" = $6,
+              "signerAccountId" = COALESCE($7, "signerAccountId"),
+              "updatedAt" = NOW()
         WHERE id = $1 AND status = $2 AND "stateVersion" = $3
         RETURNING id`,
         [
@@ -197,6 +206,7 @@ export class ChainOperationService {
           input.nextState,
           input.transactionHash ?? null,
           input.errorCode ?? null,
+          input.signerAccountId ?? null,
         ],
       )) as Array<{ id: string }>;
       if (rows.length !== 1) {
@@ -218,6 +228,121 @@ export class ChainOperationService {
       return manager
         .getRepository(ChainOperationEntity)
         .findOneByOrFail({ id: input.id });
+    });
+  }
+
+  async reconcileFinalExecution(id: string): Promise<{
+    observation: ChainOperationObservationEntity;
+    replayed: boolean;
+  }> {
+    const operation = await this.dataSource
+      .getRepository(ChainOperationEntity)
+      .findOneBy({ id });
+    if (!operation) {
+      throw new NotFoundException('Chain operation was not found');
+    }
+    if (!['Submitted', 'Unknown'].includes(operation.status)) {
+      throw new ConflictException(
+        'Only submitted or unknown operations can be reconciled',
+      );
+    }
+    if (!operation.transactionHash || !operation.signerAccountId) {
+      throw new ConflictException(
+        'Operation is missing its submitted transaction and signer binding',
+      );
+    }
+    const transactionHash = operation.transactionHash;
+    const signerAccountId = operation.signerAccountId;
+    const repository = this.dataSource.getRepository(
+      ChainOperationObservationEntity,
+    );
+    const existing = await repository.findOneBy({
+      chainOperationId: id,
+      transactionHash,
+    });
+    if (existing) {
+      return { observation: existing, replayed: true };
+    }
+
+    const identity = await this.nearRpc.getNetworkIdentity();
+    if (identity.network !== operation.intent.network) {
+      throw new ConflictException(
+        'Chain operation network does not match the configured NEAR network',
+      );
+    }
+    const outcome = await this.nearRpc.getTransactionOutcome(
+      transactionHash,
+      signerAccountId,
+    );
+    if (
+      outcome.transaction.hash !== transactionHash ||
+      outcome.transaction.signer_id !== signerAccountId
+    ) {
+      throw new ConflictException(
+        'NEAR returned a transaction that does not match the submitted operation',
+      );
+    }
+    const status = outcome.status;
+    const result =
+      typeof status === 'object' && 'Failure' in status
+        ? 'Failed'
+        : typeof status === 'object' &&
+            ('SuccessValue' in status || 'SuccessReceiptId' in status)
+          ? 'Succeeded'
+          : null;
+    if (!result) {
+      throw new ConflictException(
+        'NEAR has not returned a final execution result for this transaction',
+      );
+    }
+    const executionStatus =
+      typeof status === 'string' ? status : (status as Record<string, unknown>);
+    const observation = repository.create({
+      chainOperationId: id,
+      network: identity.network,
+      transactionHash: outcome.transaction.hash,
+      signerAccountId: outcome.transaction.signer_id,
+      result,
+      blockHash: outcome.transaction_outcome.block_hash,
+      executionStatus,
+    });
+
+    return this.dataSource.transaction(async (manager) => {
+      const inserted = (await manager.query(
+        `INSERT INTO chain_operation_observations
+          ("chainOperationId", network, "transactionHash", "signerAccountId", result, "blockHash", "executionStatus")
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT ("chainOperationId", "transactionHash") DO NOTHING
+         RETURNING id`,
+        [
+          observation.chainOperationId,
+          observation.network,
+          observation.transactionHash,
+          observation.signerAccountId,
+          observation.result,
+          observation.blockHash,
+          JSON.stringify(observation.executionStatus),
+        ],
+      )) as Array<{ id: string }>;
+      const persisted = await manager
+        .getRepository(ChainOperationObservationEntity)
+        .findOneByOrFail({
+          chainOperationId: id,
+          transactionHash,
+        });
+      if (inserted.length === 1) {
+        await this.audit.appendAuditEvent(manager, {
+          action: 'chain_operation.final_execution_observed',
+          outcome: 'Allowed',
+          targetType: 'ChainOperation',
+          targetId: id,
+          actor: { userId: operation.requestedBy },
+          correlationId: operation.correlationId,
+          afterHash: persisted.blockHash,
+          reasonCode: persisted.result,
+        });
+      }
+      return { observation: persisted, replayed: inserted.length === 0 };
     });
   }
 
