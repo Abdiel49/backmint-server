@@ -158,17 +158,20 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 5 — Evaluations, AI assistance and awards
 
-- [ ] Implement `EvaluationRound`, `EvaluationAssignment`, conflict declaration, rubric version, queue filtering and reviewer permissions.
+- [~] Implement `EvaluationRound`, `EvaluationAssignment`, conflict declaration, rubric version, queue filtering and reviewer permissions.
   - Done when: reviewers can only view assigned/authorized material and conflicts are recorded before decision.
+  - Evidence: `feature/human-evaluation-foundations` adds organization-scoped round management, active evaluator-role checks, assignment-only reviewer queues, self/organization conflict prevention, one-time conflict declarations, immutable rubric snapshots and queue filters for source, status, eligibility and reviewed state. Service layer only; authenticated HTTP routes remain pending.
   - Failure: FAILED — <UTC timestamp> — unauthorized review or undeclared conflict — governance/privacy risk — <owner> — revoke assignment and audit access.
-- [ ] Implement human `Evaluation` with findings, rubric scores, eligibility decision, recommendation, notes and immutable audit history.
+- [~] Implement human `Evaluation` with findings, rubric scores, eligibility decision, recommendation, notes and immutable audit history.
   - Done when: submitted evaluation changes are versioned/audited and human decision remains authoritative.
+  - Evidence: `feature/human-evaluation-foundations` persists append-only, versioned human decisions with findings, non-negative rubric scores, eligibility decision, recommendation, notes and separately stored deterministic eligibility output. Database triggers reject evaluation history mutation; review submission is transactionally serialized per assignment. No Award transition is wired.
   - Failure: FAILED — <UTC timestamp> — evaluation is silently mutable or automated — decision integrity risk — <owner> — freeze record and restore audit trail.
 - [ ] Implement `AIReview` as advisory output with model/version, prompt version, source document references, uncertainty flags, consent and retention controls.
   - Done when: AI output cites specific source fields and cannot invoke selection, agreement, payment or chain actions.
   - Failure: FAILED — <UTC timestamp> — AI output is uncited, leaks PII or triggers action — safety/privacy risk — <owner> — disable workflow, purge per policy and remediate prompt/access path.
 - [~] Implement deterministic eligibility findings: `Eligible`, `NeedsReview`, `Ineligible`, `MissingInformation`.
   - Done when: each result is reproducible from stored rules and inputs, separate from subjective reviewer scoring.
+  - Evidence: human evaluation stores output from `evaluateEligibility` using the Application/FundingOffer publication and applicant snapshots and Application answers, separately from the human decision. Verification and other profile data not present in current submission snapshots remain `MissingInformation`; complete input capture and pre-award re-evaluation remain pending.
   - Failure: FAILED — <UTC timestamp> — eligibility cannot be explained/reproduced — decision traceability failure — <owner> — correct evaluator and reprocess affected cases.
 - [ ] Implement `Award` creation from Application or FundingOffer with allocation, asset, recipient, expiry and terms snapshot.
   - Done when: award is not treated as an enforceable payment/deposit and supports accept/decline/expiry transitions.
