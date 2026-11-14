@@ -68,6 +68,87 @@ export class EvaluationsService {
     });
   }
 
+  async listRounds(input: {
+    sourceType: 'Project' | 'Call';
+    sourceId: string;
+    actorUserId: string;
+  }): Promise<EvaluationRoundEntity[]> {
+    await this.assertPublicationManager(
+      this.dataSource.manager,
+      input.sourceType,
+      input.sourceId,
+      input.actorUserId,
+    );
+    return this.dataSource.getRepository(EvaluationRoundEntity).find({
+      where: { sourceType: input.sourceType, sourceId: input.sourceId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async listRoundAssignments(
+    roundId: string,
+    actorUserId: string,
+  ): Promise<EvaluationAssignmentEntity[]> {
+    const round = await this.requireRound(this.dataSource.manager, roundId);
+    await this.assertPublicationManager(
+      this.dataSource.manager,
+      round.sourceType,
+      round.sourceId,
+      actorUserId,
+    );
+    return this.dataSource.getRepository(EvaluationAssignmentEntity).find({
+      where: { roundId },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async closeRound(
+    roundId: string,
+    actorUserId: string,
+  ): Promise<EvaluationRoundEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const round = await manager
+        .getRepository(EvaluationRoundEntity)
+        .createQueryBuilder('round')
+        .setLock('pessimistic_write')
+        .where('round.id = :roundId', { roundId })
+        .getOne();
+      if (!round) throw new NotFoundException('Evaluation round was not found');
+      await this.assertPublicationManager(
+        manager,
+        round.sourceType,
+        round.sourceId,
+        actorUserId,
+      );
+      if (round.status !== 'Open')
+        throw new BadRequestException('Evaluation round is already closed');
+      round.status = 'Closed';
+      return manager.getRepository(EvaluationRoundEntity).save(round);
+    });
+  }
+
+  async revokeAssignment(
+    assignmentId: string,
+    actorUserId: string,
+  ): Promise<EvaluationAssignmentEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const assignment = await this.lockAssignment(manager, assignmentId);
+      const round = await this.requireRound(manager, assignment.roundId);
+      await this.assertPublicationManager(
+        manager,
+        round.sourceType,
+        round.sourceId,
+        actorUserId,
+      );
+      if (assignment.status === 'Submitted' || assignment.status === 'Revoked')
+        throw new BadRequestException(
+          'Submitted or revoked assignments cannot be revoked',
+        );
+      assignment.status = 'Revoked';
+      return manager.getRepository(EvaluationAssignmentEntity).save(assignment);
+    });
+  }
+
   async assign(input: {
     roundId: string;
     evaluatorUserId: string;
@@ -218,6 +299,11 @@ export class EvaluationsService {
       });
     const results = [];
     for (const assignment of assignments) {
+      if (
+        assignment.status !== 'InProgress' &&
+        assignment.status !== 'Submitted'
+      )
+        continue;
       if (assignment.conflictStatus !== 'NoConflict') continue;
       const round = await this.dataSource
         .getRepository(EvaluationRoundEntity)

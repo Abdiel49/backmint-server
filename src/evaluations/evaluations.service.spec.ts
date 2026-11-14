@@ -118,6 +118,11 @@ describe('EvaluationsService', () => {
               id: 'assignment-2',
               conflictStatus: 'Undeclared',
             },
+            {
+              ...assignment,
+              id: 'assignment-3',
+              status: 'Revoked',
+            },
           ]),
         },
       ],

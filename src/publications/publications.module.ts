@@ -25,9 +25,12 @@ import {
 import { EvaluationsService } from '../evaluations/evaluations.service.js';
 import { AwardEntity } from './award.entity.js';
 import { AwardsService } from './awards.service.js';
+import { IdentityModule } from '../identity/identity.module.js';
+import { EvaluationsController } from '../evaluations/evaluations.controller.js';
 
 @Module({
   imports: [
+    IdentityModule,
     TypeOrmModule.forFeature([
       ProjectEntity,
       ProjectVersionEntity,
@@ -46,7 +49,7 @@ import { AwardsService } from './awards.service.js';
       AwardEntity,
     ]),
   ],
-  controllers: [OpportunityController],
+  controllers: [OpportunityController, EvaluationsController],
   providers: [
     PublicationService,
     OpportunityService,
