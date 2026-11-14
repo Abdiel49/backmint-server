@@ -15,8 +15,8 @@ async function bootstrap() {
   });
   app.setGlobalPrefix(configService.getOrThrow<string>('app.apiPrefix'));
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Blackmint API')
-    .setDescription('Blackmint server API documentation')
+    .setTitle('Backmint API')
+    .setDescription('Backmint server API documentation')
     .setVersion('1.0')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);

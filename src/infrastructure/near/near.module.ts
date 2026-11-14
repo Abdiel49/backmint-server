@@ -23,6 +23,11 @@ import { NearRpcService } from './near-rpc.service.js';
       provide: NEAR_RPC_CLIENT,
       useExisting: NearRpcService,
     },
+    {
+      provide: NEAR_RPC_CLIENT,
+      useExisting: NearRpcService,
+    },
+    NearRpcService,
   ],
   exports: [NEAR_RPC_CLIENT, NEAR_RPC_PROVIDER],
 })

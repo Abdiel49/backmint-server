@@ -10,6 +10,21 @@ const environmentSchema = z.object({
   RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
+  UPLOAD_RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(20),
+  FINANCIAL_RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10),
+  PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30),
   UPLOAD_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
   FINANCIAL_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
   PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(30),
@@ -90,6 +105,14 @@ const environmentSchema = z.object({
     .min(0)
     .max(5_000)
     .default(100),
+  OBSERVE_APP_KEY: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
+  OBSERVE_APP_SECRET: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
   OBSERVE_APP_KEY: z.string().optional().transform((value) => value || undefined),
   OBSERVE_APP_SECRET: z.string().optional().transform((value) => value || undefined),
 });
@@ -119,10 +142,13 @@ export const appConfig = registerAs('app', () => {
     ),
     rateLimitTtl: environment.RATE_LIMIT_TTL_MS,
     rateLimitMaxRequests: environment.RATE_LIMIT_MAX_REQUESTS,
-    authenticationRateLimitMaxRequests: environment.AUTH_RATE_LIMIT_MAX_REQUESTS,
+    authenticationRateLimitMaxRequests:
+      environment.AUTH_RATE_LIMIT_MAX_REQUESTS,
     uploadRateLimitMaxRequests: environment.UPLOAD_RATE_LIMIT_MAX_REQUESTS,
-    financialRateLimitMaxRequests: environment.FINANCIAL_RATE_LIMIT_MAX_REQUESTS,
-    publicEmbedRateLimitMaxRequests: environment.PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS,
+    financialRateLimitMaxRequests:
+      environment.FINANCIAL_RATE_LIMIT_MAX_REQUESTS,
+    publicEmbedRateLimitMaxRequests:
+      environment.PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS,
   };
 });
 
