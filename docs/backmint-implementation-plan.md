@@ -88,6 +88,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 - [~] Implement `User` and `IdentityProvider` persistence, registration/login/recovery flows, sessions/tokens and account security controls.
   - Done when: authenticated identity is established through a verified provider and session revocation/recovery is tested.
+  - Evidence: [PR #21](https://github.com/Abdiel49/backmint-server/pull/21) persists users/verified identities, [PR #23](https://github.com/Abdiel49/backmint-server/pull/23) adds revocable sessions, and [PR #40](https://github.com/Abdiel49/backmint-server/pull/40) adds authenticated current-session and revocation endpoints. Public registration, provider login and account recovery remain pending an external identity-verification integration.
   - Failure: FAILED — <UTC timestamp> — identity/session flow allows impersonation or unrecoverable access — account security risk — <owner> — disable affected flow and remediate.
 - [~] Implement wallet challenge issuance, signature verification, `WalletLink` creation and revocation.
   - Done when: only a verified account owner can link a wallet; reused or expired challenges fail.
@@ -108,8 +109,9 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Evidence: [PR #31](https://github.com/Abdiel49/backmint-server/pull/31) is merged. Verification cases, scoped private object references, reviewer decision history, self-review prevention, hourly expiry and role/resource access checks are implemented.
   - Limitation: authenticated HTTP endpoints, actual signed-upload completion, malware scanning and applicant-submission gating remain pending.
   - Failure: FAILED — <UTC timestamp> — verification evidence/status is exposed or transition invalid — privacy/compliance risk — <owner> — restrict access and repair workflow.
-- [ ] Implement authentication and authorization packages with JWT/session guards, CSRF protection for cookie flows, RBAC plus resource-level ABAC.
+- [~] Implement authentication and authorization packages with JWT/session guards, CSRF protection for cookie flows, RBAC plus resource-level ABAC.
   - Done when: every protected endpoint has policy tests for self, teammate, other organization and anonymous users.
+  - Evidence: [PR #40](https://github.com/Abdiel49/backmint-server/pull/40) documents Bearer-session security and tests anonymous, cookie-only, owner and role denials. Cookie authentication is explicitly rejected; CSRF protection is therefore not applicable to these routes. Resource policies for the remaining protected resources and provider-authenticated login remain pending.
   - Failure: FAILED — <UTC timestamp> — protected resource is accessible without valid policy — data/financial authorization risk — <owner> — disable route and repair guard.
 
 ## Phase 3 — Projects, Calls and public opportunity read model
@@ -171,8 +173,9 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Evidence: [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) is merged. Human decisions are append-only, versioned and transactionally serialized per assignment; award transition and route-level actor authorization remain pending.
   - Evidence: commit `40c71c0` on `feature/human-evaluation-foundations`; [PR #35](https://github.com/Abdiel49/backmint-server/pull/35) targets `develop`. Persists append-only, versioned human decisions with findings, non-negative rubric scores, eligibility decision, recommendation, notes and separately stored deterministic eligibility output. Database triggers reject evaluation history mutation; review submission is transactionally serialized per assignment. No Award transition is wired.
   - Failure: FAILED — <UTC timestamp> — evaluation is silently mutable or automated — decision integrity risk — <owner> — freeze record and restore audit trail.
-- [ ] Implement `AIReview` as advisory output with model/version, prompt version, source document references, uncertainty flags, consent and retention controls.
+- [~] Implement `AIReview` as advisory output with model/version, prompt version, source document references, uncertainty flags, consent and retention controls.
   - Done when: AI output cites specific source fields and cannot invoke selection, agreement, payment or chain actions.
+  - Evidence: [PR #39](https://github.com/Abdiel49/backmint-server/pull/39) adds immutable advisory records, verified citations to application data, uncertainty flags, explicit individual consent and configurable retention. It has no provider/generation flow; organizational representative consent, PII review and live factual-quality validation remain pending.
   - Failure: FAILED — <UTC timestamp> — AI output is uncited, leaks PII or triggers action — safety/privacy risk — <owner> — disable workflow, purge per policy and remediate prompt/access path.
 - [~] Implement deterministic eligibility findings: `Eligible`, `NeedsReview`, `Ineligible`, `MissingInformation`.
   - Done when: each result is reproducible from stored rules and inputs, separate from subjective reviewer scoring.
