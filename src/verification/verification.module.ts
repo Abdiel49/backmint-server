@@ -7,6 +7,7 @@ import { VerificationCaseEntity } from './verification-case.entity.js';
 import { VerificationDocumentEntity } from './verification-document.entity.js';
 import { VerificationReviewEntity } from './verification-review.entity.js';
 import { VerificationService } from './verification.service.js';
+import { VerificationController } from './verification.controller.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { VerificationService } from './verification.service.js';
     ]),
     ObjectStorageModule,
   ],
+  controllers: [VerificationController],
   providers: [VerificationService],
   exports: [VerificationService],
 })
