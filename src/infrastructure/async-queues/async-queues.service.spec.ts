@@ -13,6 +13,11 @@ function createService(attempts = 5) {
     getJob: vi.fn(),
     add: vi.fn(),
   };
+  const milestoneEvidenceScansQueue = {
+    name: AsyncQueueName.MilestoneEvidenceScans,
+    getJob: vi.fn(),
+    add: vi.fn(),
+  };
   const chainReconciliationQueue = {
     name: AsyncQueueName.ChainReconciliation,
     getJob: vi.fn(),
@@ -42,6 +47,7 @@ function createService(attempts = 5) {
     { host: 'localhost', port: 6379, password: undefined },
     notificationsQueue as never,
     malwareScansQueue as never,
+    milestoneEvidenceScansQueue as never,
     chainReconciliationQueue as never,
     aggregationQueue as never,
     retryableDeliveryQueue as never,

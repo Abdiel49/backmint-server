@@ -47,6 +47,8 @@ export class AsyncQueuesService implements OnModuleInit, OnApplicationShutdown {
     private readonly notificationsQueue: Queue<QueuePayload>,
     @InjectQueue(AsyncQueueName.MalwareScans)
     private readonly malwareScansQueue: Queue<QueuePayload>,
+    @InjectQueue(AsyncQueueName.MilestoneEvidenceScans)
+    private readonly milestoneEvidenceScansQueue: Queue<QueuePayload>,
     @InjectQueue(AsyncQueueName.ChainReconciliation)
     private readonly chainReconciliationQueue: Queue<QueuePayload>,
     @InjectQueue(AsyncQueueName.Aggregation)
@@ -59,6 +61,7 @@ export class AsyncQueuesService implements OnModuleInit, OnApplicationShutdown {
     this.sourceQueues = [
       this.notificationsQueue,
       this.malwareScansQueue,
+      this.milestoneEvidenceScansQueue,
       this.chainReconciliationQueue,
       this.aggregationQueue,
       this.retryableDeliveryQueue,
