@@ -2419,6 +2419,112 @@
       }
     },
     "/api/projects/{id}": {
+      "get": {
+        "operationId": "PublicationManagementController_getProject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "5f3f652e-b349-4fb6-81b9-91c27652d0a8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "5f3f652e-b349-4fb6-81b9-91c27652d0a8",
+                    "title": "Community Solar Pilot",
+                    "description": "Funding for locally led solar projects.",
+                    "direction": "FundingRequested",
+                    "visibility": "Private",
+                    "lifecycleStatus": "Draft",
+                    "intakeStatus": "Open",
+                    "ownerOrganizationId": "7c6f2ef9-1918-45da-88f4-dfa0474bd9d5",
+                    "content": {
+                      "objectives": [
+                        "Install a 20 kW solar system"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The Project identifier is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Validation failed (uuid is expected)",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks an active authorized organization membership.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active Owner, Admin, or ProjectManager membership is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The publication does not exist or is not manageable by the caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Publication was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a manageable Project",
+        "tags": [
+          "Project and Call management"
+        ]
+      },
       "patch": {
         "operationId": "PublicationManagementController_updateProject",
         "parameters": [
@@ -2538,6 +2644,113 @@
       }
     },
     "/api/calls/{id}": {
+      "get": {
+        "operationId": "PublicationManagementController_getCall",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "5f3f652e-b349-4fb6-81b9-91c27652d0a8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Call retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": "5f3f652e-b349-4fb6-81b9-91c27652d0a8",
+                    "title": "Community Solar Grants",
+                    "description": "Funding for locally led solar projects.",
+                    "direction": "FundingOffered",
+                    "visibility": "Private",
+                    "lifecycleStatus": "Draft",
+                    "intakeStatus": "Open",
+                    "ownerOrganizationId": "7c6f2ef9-1918-45da-88f4-dfa0474bd9d5",
+                    "content": {
+                      "audienceTypes": [
+                        "Community",
+                        "Nonprofit"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The Call identifier is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Validation failed (uuid is expected)",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks an active authorized organization membership.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active Owner, Admin, or ProjectManager membership is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The publication does not exist or is not manageable by the caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Publication was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a manageable Call",
+        "tags": [
+          "Project and Call management"
+        ]
+      },
       "patch": {
         "operationId": "PublicationManagementController_updateCall",
         "parameters": [

@@ -51,6 +51,14 @@ export class PublicationManagementService {
     });
   }
 
+  async getProject(actorUserId: string, id: string) {
+    return this.assertResourceAccess(actorUserId, ProjectEntity, id);
+  }
+
+  async getCall(actorUserId: string, id: string) {
+    return this.assertResourceAccess(actorUserId, CallEntity, id);
+  }
+
   async updateProject(actorUserId: string, id: string, changes: object) {
     await this.assertResourceAccess(actorUserId, ProjectEntity, id);
     return this.publications.updateProject(id, changes);
@@ -105,16 +113,17 @@ export class PublicationManagementService {
     actorUserId: string,
     entity: new () => T,
     id: string,
-  ): Promise<void> {
+  ): Promise<ProjectEntity | CallEntity> {
     const resource = entity === ProjectEntity
       ? await this.dataSource.getRepository(ProjectEntity).findOne({ where: { id } })
       : await this.dataSource.getRepository(CallEntity).findOne({ where: { id } });
     if (!resource) throw new NotFoundException('Publication was not found');
-    if (resource.ownerUserId === actorUserId) return;
+    if (resource.ownerUserId === actorUserId) return resource;
     if (!resource.ownerOrganizationId) {
       throw new NotFoundException('Publication was not found');
     }
     await this.assertOrganizationAccess(actorUserId, resource.ownerOrganizationId);
+    return resource;
   }
 
   private async assertOrganizationAccess(

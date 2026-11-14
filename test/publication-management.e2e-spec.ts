@@ -98,6 +98,21 @@ describe('Publication management HTTP authorization (e2e)', () => {
 
   afterAll(async () => app.close());
 
+  it('reads individual resources only for authorized owners and organization members', async () => {
+    await request(app.getHttpServer()).get(`/api/projects/${userProjectId}`).expect(401);
+    const own = await request(app.getHttpServer()).get(`/api/projects/${userProjectId}`).set('Authorization', 'Bearer owner-token').expect(200);
+    expect(own.body).toMatchObject({ id: userProjectId, ownerUserId: 'user-owner' });
+    const project = await request(app.getHttpServer()).get(`/api/projects/${projectId}`).set('Authorization', 'Bearer manager-token').expect(200);
+    expect(project.body).toMatchObject({ id: projectId, ownerOrganizationId: organizationId });
+    const call = await request(app.getHttpServer()).get(`/api/calls/${callId}`).set('Authorization', 'Bearer admin-token').expect(200);
+    expect(call.body).toMatchObject({ id: callId, ownerOrganizationId: organizationId });
+    await request(app.getHttpServer()).get(`/api/projects/${userProjectId}`).set('Authorization', 'Bearer unrelated-token').expect(404);
+    await request(app.getHttpServer()).get(`/api/calls/${callId}`).set('Authorization', 'Bearer unrelated-token').expect(403);
+    await request(app.getHttpServer()).get(`/api/calls/${projectId}`).set('Authorization', 'Bearer manager-token').expect(404);
+    await request(app.getHttpServer()).get(`/api/projects/${callId}`).set('Authorization', 'Bearer manager-token').expect(404);
+    await request(app.getHttpServer()).get('/api/projects/invalid').set('Authorization', 'Bearer manager-token').expect(400);
+  });
+
   it('rejects anonymous management requests', async () => {
     await request(app.getHttpServer()).patch(`/api/projects/${userProjectId}`).send({ title: 'Updated' }).expect(401);
   });
