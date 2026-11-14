@@ -10,6 +10,7 @@ import { OrganizationMembershipEntity } from '../organizations/organization-memb
 import { OrganizationEntity } from '../organizations/organization.entity.js';
 import { ProjectEntity } from '../publications/project.entity.js';
 import { CallEntity } from '../publications/call.entity.js';
+import { IdentityModule } from '../identity/identity.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CallEntity } from '../publications/call.entity.js';
       ProjectEntity,
       CallEntity,
     ]),
+    IdentityModule,
     AuditPersistenceModule,
   ],
   controllers: [OutcomeClaimsController],
