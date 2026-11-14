@@ -25,9 +25,6 @@ const environmentSchema = z.object({
     .int()
     .positive()
     .default(30),
-  UPLOAD_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
-  FINANCIAL_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
-  PUBLIC_EMBED_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(30),
   DATABASE_HOST: z.string().min(1),
   DATABASE_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
   DATABASE_NAME: z.string().min(1),
@@ -105,16 +102,6 @@ const environmentSchema = z.object({
     .min(0)
     .max(5_000)
     .default(100),
-  OBSERVE_APP_KEY: z
-    .string()
-    .optional()
-    .transform((value) => value || undefined),
-  OBSERVE_APP_SECRET: z
-    .string()
-    .optional()
-    .transform((value) => value || undefined),
-  OBSERVE_APP_KEY: z.string().optional().transform((value) => value || undefined),
-  OBSERVE_APP_SECRET: z.string().optional().transform((value) => value || undefined),
 });
 
 type Environment = z.infer<typeof environmentSchema>;
