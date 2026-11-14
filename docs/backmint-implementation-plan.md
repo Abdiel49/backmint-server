@@ -23,7 +23,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Keep code, database identifiers, OpenAPI operation names, events and statuses in English.
   - Done when: lint/review finds no non-localized business identifiers outside English terminology.
   - Failure: FAILED — <UTC timestamp> — non-canonical identifier found — client/domain mismatch risk — <owner> — rename and regenerate contracts.
-- [ ] Document every HTTP endpoint in Swagger/OpenAPI with realistic request and success/error examples.
+- [~] Document every HTTP endpoint in Swagger/OpenAPI with realistic request and success/error examples.
   - Done when: the generated OpenAPI document is versioned and snapshot-tested.
   - Failure: FAILED — <UTC timestamp> — endpoint or example absent from OpenAPI — client contract incomplete — <owner> — add decorators and snapshot.
 - [~] Use integer minor units or canonical asset base units for all financial amounts.
