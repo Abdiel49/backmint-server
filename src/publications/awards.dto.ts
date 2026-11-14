@@ -17,6 +17,11 @@ export const awardRecipientResponseSchema = z.strictObject({
   recipientOrganizationId: z.uuid().nullable(),
 });
 
+export const awardListQuerySchema = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).max(100000).default(0),
+});
+
 export class CreateAwardFromApplicationDto {
   @ApiProperty({
     example: '250000000000000000000000',
@@ -71,4 +76,12 @@ export class AwardRecipientResponseDto {
       'Required organization context for an organization recipient; use null for an individual recipient.',
   })
   recipientOrganizationId!: string | null;
+}
+
+export class AwardListQueryDto {
+  @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 20, example: 20 })
+  limit?: number;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 100000, default: 0, example: 0 })
+  offset?: number;
 }

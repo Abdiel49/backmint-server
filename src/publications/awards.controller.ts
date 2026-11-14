@@ -2,11 +2,13 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -19,6 +21,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -30,9 +33,11 @@ import type { AuthenticatedSession } from '../identity/auth-session.service.js';
 import { AwardsService } from './awards.service.js';
 import {
   AwardRecipientResponseDto,
+  AwardListQueryDto,
   CreateAwardFromApplicationDto,
   CreateAwardFromFundingOfferDto,
   awardRecipientResponseSchema,
+  awardListQuerySchema,
   createAwardFromApplicationSchema,
   createAwardFromFundingOfferSchema,
 } from './awards.dto.js';
@@ -67,6 +72,101 @@ const awardConflictExample = {
 @Controller('awards')
 export class AwardsController {
   constructor(private readonly awards: AwardsService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'List Awards visible to the authenticated user',
+    description:
+      'Returns Awards where the user is the named individual recipient, an active Owner/Admin of the recipient organization, the individual source publisher, or an active Owner/Admin of the source publisher organization. Results use a safe projection without ownership identifiers or immutable source snapshots.',
+  })
+  @ApiQuery({ name: 'limit', required: false, example: 20, minimum: 1, maximum: 100 })
+  @ApiQuery({ name: 'offset', required: false, example: 0, minimum: 0, maximum: 100000 })
+  @ApiOkResponse({
+    description: 'A page of Awards visible to the authenticated user.',
+    schema: {
+      example: {
+        items: [awardResponseExample],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      },
+    },
+  })
+  @ApiBadRequestResponse({
+    description: 'Pagination values are outside the allowed range.',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: 'Award list query is invalid',
+        error: 'Bad Request',
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid bearer session is required.',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'A valid bearer session is required',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  async list(
+    @Query() query: AwardListQueryDto,
+    @CurrentSession() session: AuthenticatedSession,
+  ) {
+    const parsed = awardListQuerySchema.safeParse(query);
+    if (!parsed.success)
+      throw new BadRequestException('Award list query is invalid');
+    const result = await this.awards.listVisible(session.userId, parsed.data);
+    return { ...result, items: result.items.map((award) => this.toResponse(award)) };
+  }
+
+  @Get(':awardId')
+  @ApiParam({
+    name: 'awardId',
+    format: 'uuid',
+    example: '7cba108d-9a33-4c86-b7c8-726dc1536152',
+  })
+  @ApiOperation({
+    summary: 'Get an Award visible to the authenticated user',
+    description:
+      'Returns an Award only to its named individual recipient, an active Owner/Admin of the recipient organization, the individual source publisher, or an active Owner/Admin of the source publisher organization. Unavailable and unauthorized Awards both return 404.',
+  })
+  @ApiOkResponse({
+    description:
+      'Safe Award projection. The Award state does not represent a deposit or payment.',
+    schema: { example: awardResponseExample },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid bearer session is required.',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'A valid bearer session is required',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  @ApiNotFoundResponse({
+    description: 'The Award is missing or unavailable to this user.',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'Award not found',
+        error: 'Not Found',
+      },
+    },
+  })
+  async get(
+    @Param('awardId', ParseUUIDPipe) awardId: string,
+    @CurrentSession() session: AuthenticatedSession,
+  ) {
+    return this.toResponse(
+      await this.awards.getVisible(awardId, session.userId),
+    );
+  }
 
   @Post('applications/:applicationId')
   @ApiParam({

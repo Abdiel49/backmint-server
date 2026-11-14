@@ -17,6 +17,33 @@ type AwardSource = ProjectEntity | CallEntity;
 export class AwardsService {
   constructor(private readonly dataSource: DataSource) {}
 
+  async getVisible(id: string, actorUserId: string): Promise<AwardEntity> {
+    const award = await this.dataSource
+      .getRepository(AwardEntity)
+      .createQueryBuilder('award')
+      .where('award.id = :awardId', { awardId: id })
+      .andWhere(this.visibleToActorPredicate(), { actorUserId })
+      .getOne();
+    if (!award) throw new NotFoundException('Award not found');
+    return award;
+  }
+
+  async listVisible(
+    actorUserId: string,
+    pagination: { limit: number; offset: number },
+  ): Promise<{ items: AwardEntity[]; total: number; limit: number; offset: number }> {
+    const [items, total] = await this.dataSource
+      .getRepository(AwardEntity)
+      .createQueryBuilder('award')
+      .where(this.visibleToActorPredicate(), { actorUserId })
+      .orderBy('award.expiresAt', 'DESC')
+      .addOrderBy('award.id', 'ASC')
+      .take(pagination.limit)
+      .skip(pagination.offset)
+      .getManyAndCount();
+    return { items, total, ...pagination };
+  }
+
   async createFromApplication(input: {
     applicationId: string;
     allocation: string;
@@ -379,5 +406,48 @@ export class AwardsService {
       throw new BadRequestException(
         'Award allocation must be a positive integer in asset base units',
       );
+  }
+
+  private visibleToActorPredicate(): string {
+    return `(
+      award."recipientUserId" = :actorUserId
+      OR EXISTS (
+        SELECT 1 FROM "organization_memberships" recipient_membership
+        WHERE recipient_membership."organizationId" = award."recipientOrganizationId"
+          AND recipient_membership."userId" = :actorUserId
+          AND recipient_membership."status" = 'Active'
+          AND recipient_membership."role" IN ('Owner', 'Admin')
+      )
+      OR EXISTS (
+        SELECT 1 FROM "projects" project_source
+        WHERE award."sourceType" = 'Project'
+          AND project_source."id" = award."sourceId"
+          AND (
+            project_source."ownerUserId" = :actorUserId
+            OR EXISTS (
+              SELECT 1 FROM "organization_memberships" publisher_membership
+              WHERE publisher_membership."organizationId" = project_source."ownerOrganizationId"
+                AND publisher_membership."userId" = :actorUserId
+                AND publisher_membership."status" = 'Active'
+                AND publisher_membership."role" IN ('Owner', 'Admin')
+            )
+          )
+      )
+      OR EXISTS (
+        SELECT 1 FROM "calls" call_source
+        WHERE award."sourceType" = 'Call'
+          AND call_source."id" = award."sourceId"
+          AND (
+            call_source."ownerUserId" = :actorUserId
+            OR EXISTS (
+              SELECT 1 FROM "organization_memberships" publisher_membership
+              WHERE publisher_membership."organizationId" = call_source."ownerOrganizationId"
+                AND publisher_membership."userId" = :actorUserId
+                AND publisher_membership."status" = 'Active'
+                AND publisher_membership."role" IN ('Owner', 'Admin')
+            )
+          )
+      )
+    )`;
   }
 }
