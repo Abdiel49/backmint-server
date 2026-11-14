@@ -26,7 +26,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Document every HTTP endpoint in Swagger/OpenAPI with realistic request and success/error examples.
   - Done when: the generated OpenAPI document is versioned and snapshot-tested.
   - Failure: FAILED — <UTC timestamp> — endpoint or example absent from OpenAPI — client contract incomplete — <owner> — add decorators and snapshot.
-- [ ] Use integer minor units or canonical asset base units for all financial amounts.
+- [~] Use integer minor units or canonical asset base units for all financial amounts.
   - Done when: schema, DTOs, services and contract adapters reject floating-point money values.
   - Failure: FAILED — <UTC timestamp> — floating-point amount accepted — balance precision risk — <owner> — replace with integer/base-unit representation.
 - [ ] Never represent a commitment as deposited, an authorization as paid, or AI advice as a human decision.
@@ -41,19 +41,19 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Maintain Docker Compose development services for PostgreSQL and Redis with health checks and persistent database volume.
   - Done when: `docker compose up -d` reports healthy dependencies and the e2e suite can connect to both services.
   - Failure: FAILED — <UTC timestamp> — dependency container unhealthy — local integration unavailable — <owner> — inspect service logs and repair Compose/environment configuration.
-- [ ] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
+- [x] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
   - Done when: a blank database can be migrated up and down in CI; production startup never mutates schema automatically.
   - Failure: FAILED — <UTC timestamp> — migration is non-reproducible or destructive — schema deployment unsafe — <owner> — repair migration and test from an empty database.
 - [ ] Configure global HTTP rate limiting with stricter policies for authentication, uploads, financial initiation and public embeds.
   - Done when: integration tests prove normal requests pass, abusive requests receive `429`, and health probes remain available.
   - Failure: FAILED — <UTC timestamp> — rate policy is bypassed or blocks health probes — abuse/availability risk — <owner> — correct guard/decorator configuration.
-- [ ] Configure CORS, trusted proxy policy, graceful shutdown and structured request/error logging.
+- [x] Configure CORS, trusted proxy policy, graceful shutdown and structured request/error logging.
   - Done when: only configured origins receive credentialed responses, shutdown closes cleanly, and request IDs are present in logs.
   - Failure: FAILED — <UTC timestamp> — cross-origin or shutdown policy incorrect — security/availability risk — <owner> — correct bootstrap configuration and add integration coverage.
 - [x] Configure event emitter, scheduler and BullMQ/Redis queues for notifications, malware scans, chain reconciliation, aggregation and retryable delivery.
   - Done when: producers and consumers use named queues, retries/backoff/dead-letter behavior is tested, and no job performs an unbounded retry.
   - Failure: FAILED — <UTC timestamp> — job is lost, duplicated or retries indefinitely — asynchronous consistency risk — <owner> — fix idempotency/retry policy and replay safely.
-- [ ] Configure a transactional outbox for domain events that leave PostgreSQL.
+- [~] Configure a transactional outbox for domain events that leave PostgreSQL.
   - Done when: a domain write and outbox event commit atomically; a worker can retry delivery without duplicate effects.
   - Failure: FAILED — <UTC timestamp> — event can publish without committed state or be lost after commit — cross-domain inconsistency — <owner> — repair transaction boundary and add failure simulation.
 - [ ] Configure private S3-compatible storage with encryption, bucket policy, restricted credentials, checksum metadata and signed URL generation.
@@ -65,19 +65,19 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 1 — Shared domain primitives and persistence
 
-- [ ] Define UUID or ULID primary key policy, UTC timestamp policy, optimistic state version policy and migration naming convention.
+- [~] Define UUID or ULID primary key policy, UTC timestamp policy, optimistic state version policy and migration naming convention.
   - Done when: every new aggregate migration applies the shared identifiers and timestamps consistently.
   - Failure: FAILED — <UTC timestamp> — aggregate violates persistence convention — audit/migration inconsistency — <owner> — align entity and migration.
-- [ ] Define enums and transition guards for visibility, intake, lifecycle, application, offer, award, agreement, milestone, finance and verification states.
+- [~] Define enums and transition guards for visibility, intake, lifecycle, application, offer, award, agreement, milestone, finance and verification states.
   - Done when: illegal transitions are rejected by unit tests and transition events are audited.
   - Failure: FAILED — <UTC timestamp> — illegal transition accepted — workflow integrity risk — <owner> — add guard and regression test.
-- [ ] Define immutable snapshot/version primitives for published sources, submitted proposals, agreement terms and evidence submissions.
+- [~] Define immutable snapshot/version primitives for published sources, submitted proposals, agreement terms and evidence submissions.
   - Done when: modifying a source cannot mutate a previously submitted or signed snapshot.
   - Failure: FAILED — <UTC timestamp> — historical snapshot changed — consent/audit integrity loss — <owner> — restore immutable versioning and backfill affected records.
-- [ ] Define domain event, audit event, idempotency key and external integration record primitives.
+- [~] Define domain event, audit event, idempotency key and external integration record primitives.
   - Done when: privileged and external side effects carry actor, correlation, causation and idempotency metadata.
   - Failure: FAILED — <UTC timestamp> — side effect lacks traceability/idempotency — reconciliation impossible — <owner> — add metadata and replay protection.
-- [ ] Define authorization primitives for acting organization, membership role, representative authority, resource ownership and explicit grants.
+- [x] Define authorization primitives for acting organization, membership role, representative authority, resource ownership and explicit grants.
   - Done when: policies can distinguish a person from their selected organizational capacity.
   - Failure: FAILED — <UTC timestamp> — actor capacity is ambiguous — unauthorized action risk — <owner> — require acting organization and policy evaluation.
 

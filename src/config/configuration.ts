@@ -7,6 +7,7 @@ const environmentSchema = z.object({
   SWAGGER_PATH: z.string().trim().min(1).default('docs'),
   SWAGGER_JSON_PATH: z.string().trim().min(1).default('docs/openapi.json'),
   CORS_ORIGINS: z.string().default('http://localhost:3001'),
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
   RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
@@ -127,6 +128,7 @@ export const appConfig = registerAs('app', () => {
     corsOrigins: environment.CORS_ORIGINS.split(',').map((origin) =>
       origin.trim(),
     ),
+    trustedProxyHops: environment.TRUSTED_PROXY_HOPS,
     rateLimitTtl: environment.RATE_LIMIT_TTL_MS,
     rateLimitMaxRequests: environment.RATE_LIMIT_MAX_REQUESTS,
     authenticationRateLimitMaxRequests:
