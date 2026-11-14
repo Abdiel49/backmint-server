@@ -43,12 +43,16 @@ export class MilestoneEvidenceScanProcessor extends WorkerHost {
       evidenceSubmissionId: job.data.submissionId,
     });
     if (!asset) throw new Error('Milestone evidence asset was not found');
-    if (asset.scanStatus === 'Passed' || asset.scanStatus === 'Quarantined') return;
     const submission = await this.dataSource.getRepository(EvidenceSubmissionEntity).findOneBy({
       id: asset.evidenceSubmissionId,
     });
     if (!submission) throw new Error('Milestone evidence submission was not found');
     if (submission.status === 'Quarantined') return;
+    if (asset.scanStatus === 'Quarantined') return;
+    if (asset.scanStatus === 'Passed') {
+      await this.markSubmissionReady(submission.id);
+      return;
+    }
 
     await this.dataSource.getRepository(EvidenceSubmissionEntity).update(
       { id: asset.evidenceSubmissionId, status: 'PendingUpload' },
@@ -63,12 +67,12 @@ export class MilestoneEvidenceScanProcessor extends WorkerHost {
     const scope = `milestones/${award.id}/${milestone.id}/${submission.id}`;
     const stream = await this.storage.getObjectStream(asset.storageKey, scope);
     const result = await this.scanner.scan(stream, Number(asset.sizeBytes));
-    const status = result === 'clean' ? 'Passed' : 'Quarantined';
-    await this.assets.update({ id: asset.id, scanStatus: 'Pending' }, { scanStatus: status });
     if (result === 'infected') {
-      await this.quarantineSubmission(submission, 'infected');
+      const quarantined = await this.quarantineAssetAndSubmission(asset.id, submission.id);
+      if (quarantined) await this.notifyUploader(quarantined, 'infected');
       return;
     }
+    await this.assets.update({ id: asset.id, scanStatus: 'Pending' }, { scanStatus: 'Passed' });
     await this.markSubmissionReady(submission.id);
   }
 
@@ -80,11 +84,17 @@ export class MilestoneEvidenceScanProcessor extends WorkerHost {
     const terminal = job.attemptsMade >= (job.opts.attempts ?? 1);
     if (!terminal) return;
     const asset = await this.assets.findOneBy({ id: assetId, evidenceSubmissionId: submissionId });
-    if (!asset || asset.scanStatus !== 'Pending') return;
-    await this.assets.update({ id: asset.id, scanStatus: 'Pending' }, { scanStatus: 'Quarantined' });
-    const submission = await this.dataSource.getRepository(EvidenceSubmissionEntity).findOneBy({ id: submissionId });
-    if (submission) await this.quarantineSubmission(submission, 'failed');
-    this.logger.warn(JSON.stringify({ assetId, submissionId, event: 'evidence-scan-quarantined', reason: error.name }));
+    if (!asset) return;
+    if (asset.scanStatus === 'Passed') {
+      await this.markSubmissionReady(submissionId);
+      return;
+    }
+    if (asset.scanStatus !== 'Pending') return;
+    const submission = await this.quarantineAssetAndSubmission(asset.id, submissionId);
+    if (submission) {
+      await this.notifyUploader(submission, 'failed');
+      this.logger.warn(JSON.stringify({ assetId, submissionId, event: 'evidence-scan-quarantined', reason: error.name }));
+    }
   }
 
   private async markSubmissionReady(submissionId: string): Promise<void> {
@@ -119,14 +129,29 @@ export class MilestoneEvidenceScanProcessor extends WorkerHost {
     });
   }
 
-  private async quarantineSubmission(
+  private async quarantineAssetAndSubmission(
+    assetId: string,
+    submissionId: string,
+  ): Promise<EvidenceSubmissionEntity | null> {
+    return this.dataSource.transaction(async (manager) => {
+      const submission = await manager.getRepository(EvidenceSubmissionEntity).findOne({
+        where: { id: submissionId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!submission || submission.status === 'Submitted' || submission.status === 'Quarantined') return null;
+      await manager.getRepository(EvidenceAssetEntity).update(
+        { id: assetId, evidenceSubmissionId: submissionId, scanStatus: 'Pending' },
+        { scanStatus: 'Quarantined' },
+      );
+      submission.status = 'Quarantined';
+      return manager.save(submission);
+    });
+  }
+
+  private async notifyUploader(
     submission: EvidenceSubmissionEntity,
     outcome: 'infected' | 'failed',
   ): Promise<void> {
-    await this.dataSource.getRepository(EvidenceSubmissionEntity).update(
-      { id: submission.id, status: 'Scanning' },
-      { status: 'Quarantined' },
-    );
     try {
       await this.notifications.create({
         userId: submission.submittedByUserId,
