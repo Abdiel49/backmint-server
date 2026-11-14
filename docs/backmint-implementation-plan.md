@@ -53,7 +53,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [x] Configure event emitter, scheduler and BullMQ/Redis queues for notifications, malware scans, chain reconciliation, aggregation and retryable delivery.
   - Done when: producers and consumers use named queues, retries/backoff/dead-letter behavior is tested, and no job performs an unbounded retry.
   - Failure: FAILED — <UTC timestamp> — job is lost, duplicated or retries indefinitely — asynchronous consistency risk — <owner> — fix idempotency/retry policy and replay safely.
-- [ ] Configure a transactional outbox for domain events that leave PostgreSQL.
+- [~] Configure a transactional outbox for domain events that leave PostgreSQL.
   - Done when: a domain write and outbox event commit atomically; a worker can retry delivery without duplicate effects.
   - Failure: FAILED — <UTC timestamp> — event can publish without committed state or be lost after commit — cross-domain inconsistency — <owner> — repair transaction boundary and add failure simulation.
 - [ ] Configure private S3-compatible storage with encryption, bucket policy, restricted credentials, checksum metadata and signed URL generation.
