@@ -4757,6 +4757,120 @@
         ]
       }
     },
+    "/api/applications/attachments/uploads": {
+      "post": {
+        "description": "Creates an upload before Application submission. The attachment remains pending and is not verified or available for review.",
+        "operationId": "ApplicationAttachmentController_createUpload",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "mimeType",
+                  "sizeBytes",
+                  "checksumSha256"
+                ],
+                "properties": {
+                  "organizationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "7c6f2ef9-1918-45da-88f4-dfa0474bd9d5"
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "example": "application/pdf"
+                  },
+                  "sizeBytes": {
+                    "type": "integer",
+                    "example": 524288
+                  },
+                  "checksumSha256": {
+                    "type": "string",
+                    "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attachment registered and private upload URL issued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "attachmentId": "4e38df44-63d1-467a-90d4-bde6bce3e6db",
+                    "status": "PendingUpload",
+                    "uploadUrl": "https://objects.example.test/backmint/applications/uploads/file?signature=example",
+                    "expiresAt": "2027-01-15T18:00:00.000Z",
+                    "requiredHeaders": {
+                      "content-type": "application/pdf",
+                      "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid metadata or attachment exceeds the scan size limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Application attachment payload is invalid",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Applicant organization authority is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active applicant organization authority is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register a private Application attachment upload",
+        "tags": [
+          "Applications"
+        ]
+      }
+    },
     "/api/organizations/{organizationId}/verification": {
       "post": {
         "operationId": "VerificationController_createCase",
