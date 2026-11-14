@@ -31,6 +31,7 @@ import { AuditPersistenceModule } from './audit/audit-persistence.module.js';
 import { OutcomeClaimsModule } from './impact/outcome-claims.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { VerificationModule } from './verification/verification.module.js';
+import { ChainOperationsModule } from './finance/chain-operations.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -128,6 +129,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     PublicationsModule,
     NotificationsModule,
     VerificationModule,
+    ChainOperationsModule,
   ],
   controllers: [AppController],
   providers: [

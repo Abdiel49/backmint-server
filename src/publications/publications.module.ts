@@ -17,6 +17,12 @@ import {
   FundingOfferEntity,
 } from './application.entity.js';
 import { ParticipationService } from './participation.service.js';
+import {
+  EvaluationAssignmentEntity,
+  EvaluationEntity,
+  EvaluationRoundEntity,
+} from '../evaluations/evaluation.entity.js';
+import { EvaluationsService } from '../evaluations/evaluations.service.js';
 
 @Module({
   imports: [
@@ -32,10 +38,23 @@ import { ParticipationService } from './participation.service.js';
       ApplicationEntity,
       ApplicationAnswerEntity,
       FundingOfferEntity,
+      EvaluationRoundEntity,
+      EvaluationAssignmentEntity,
+      EvaluationEntity,
     ]),
   ],
   controllers: [OpportunityController],
-  providers: [PublicationService, OpportunityService, ParticipationService],
-  exports: [PublicationService, OpportunityService, ParticipationService],
+  providers: [
+    PublicationService,
+    OpportunityService,
+    ParticipationService,
+    EvaluationsService,
+  ],
+  exports: [
+    PublicationService,
+    OpportunityService,
+    ParticipationService,
+    EvaluationsService,
+  ],
 })
 export class PublicationsModule {}
