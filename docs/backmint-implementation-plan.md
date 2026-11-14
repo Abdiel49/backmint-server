@@ -312,8 +312,9 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 11 — API, contract and integration discipline
 
-- [ ] Version public APIs and generate/version a TypeScript client from OpenAPI without requiring a shared repository.
+- [~] Version public APIs and generate/version a TypeScript client from OpenAPI without requiring a shared repository.
   - Done when: client generation and OpenAPI snapshots run in CI and breaking changes are explicitly versioned.
+  - Evidence: this feature adds a reproducible NestJS OpenAPI JSON generator, a checked-in `openapi-typescript` declaration artifact, and CI drift verification. The OpenAPI document retains version `1.0`; URI-level API versioning and cross-repository artifacts remain pending.
   - Failure: FAILED — <UTC timestamp> — client/API contract drift — integration breakage — <owner> — restore compatible contract or publish versioned change.
 - [~] Apply idempotency keys to all monetary initiations and mutable decisions, with request hash and result replay behavior.
   - Done when: retrying the same key returns the original result; conflicting payload under same key is rejected.
