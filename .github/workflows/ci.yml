@@ -9,8 +9,6 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    env:
-      RUN_POSTGRES_INTEGRATION: 'true'
     services:
       postgres:
         image: postgres:17-alpine
@@ -35,6 +33,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      RUN_POSTGRES_INTEGRATION: 'true'
       NODE_ENV: test
       PORT: 3001
       API_PREFIX: api
