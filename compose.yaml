@@ -30,5 +30,18 @@ services:
       timeout: 5s
       retries: 10
 
+  clamav:
+    image: clamav/clamav:1.4-alpine
+    container_name: backmint-clamav
+    restart: unless-stopped
+    ports:
+      - "${CLAMAV_PORT:-3310}:3310"
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 --ping-timeout 2 localhost"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
 volumes:
   postgres-data:
