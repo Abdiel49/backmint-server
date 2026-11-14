@@ -17,6 +17,7 @@ import { AwardsService } from '../src/publications/awards.service.js';
 import { ProjectEntity } from '../src/publications/project.entity.js';
 import { UserEntity } from '../src/identity/user.entity.js';
 import { IdentityProviderEntity } from '../src/identity/identity-provider.entity.js';
+import { OrganizationEntity } from '../src/organizations/organization.entity.js';
 
 const postgresIntegration = process.env.RUN_POSTGRES_INTEGRATION === 'true';
 
@@ -41,6 +42,7 @@ describe.skipIf(!postgresIntegration)(
           EvaluationAssignmentEntity,
           EvaluationEntity,
           AuditEventEntity,
+          OrganizationEntity,
         ],
         migrations: [],
       });
@@ -163,6 +165,45 @@ describe.skipIf(!postgresIntegration)(
       );
       return { project, applications, users };
     }
+
+    it('revalidates current organization type and country against the submitted policy before reserving an Award', async () => {
+      const { project, users } = await fixture({ maximumAwards: 3, budget: '100' });
+      const organizations = await connection.getRepository(OrganizationEntity).save(
+        ['eligible', 'type', 'country'].map((label) => ({
+          slug: `${label}-${crypto.randomUUID()}`,
+          name: `Organization ${label}`,
+          organizationType: 'Nonprofit' as const,
+          country: 'BO',
+          legalStatus: 'Incorporated' as const,
+          visibility: 'Private' as const,
+          status: 'Active' as const,
+          ownerUserId: users[1].id,
+        })),
+      );
+      const applications = await connection.getRepository(ApplicationEntity).save(
+        organizations.map((organization) => ({
+          sourceType: 'Project', sourceId: project.id,
+          applicantOrganizationId: organization.id, applicantUserId: null,
+          applicantKey: `organization:${organization.id}`, sourceVersion: 1,
+          sourceSnapshot: { eligibilityRule: { audienceTypes: ['Nonprofit'], allowedJurisdictions: ['BO'] } },
+          applicantSnapshot: { type: 'Nonprofit', country: 'BO', organizationId: organization.id },
+          proposalSnapshot: {}, status: 'Selected', receipt: crypto.randomUUID(),
+        })),
+      );
+      await connection.getRepository(OrganizationEntity).update({ id: organizations[1].id }, { organizationType: 'Company' });
+      await connection.getRepository(OrganizationEntity).update({ id: organizations[2].id }, { country: 'CL' });
+      const create = (index: number) => service.createFromApplication({
+        applicationId: applications[index].id, allocation: '20', asset: 'near:testnet:token',
+        expiresAt: new Date(Date.now() + 60_000), actorUserId: users[0].id,
+      });
+      await expect(create(1)).rejects.toThrow('audience requirements');
+      await expect(create(2)).rejects.toThrow('allowed jurisdiction');
+      for (const application of applications.slice(1)) {
+        expect((await connection.getRepository(ApplicationEntity).findOneByOrFail({ id: application.id })).status).toBe('Selected');
+        expect(await connection.getRepository(AwardEntity).count({ where: { applicationId: application.id } })).toBe(0);
+      }
+      await expect(create(0)).resolves.toMatchObject({ state: 'Offered', recipientOrganizationId: organizations[0].id });
+    });
 
     it('serializes concurrent awards against maxAwards and releases a decline exactly once', async () => {
       const { project, applications, users } = await fixture({

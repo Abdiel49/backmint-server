@@ -3398,6 +3398,14 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
             404: {
                 headers: {
                     [name: string]: unknown;

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +11,9 @@ import { AwardEntity } from './award.entity.js';
 import { CallEntity } from './call.entity.js';
 import { ProjectEntity } from './project.entity.js';
 import { PublicationSourceType } from './publication.types.js';
+import type { PublicationSnapshot } from './publication.types.js';
+import { OrganizationEntity } from '../organizations/organization.entity.js';
+import { assertApplicantAudience, assertApplicantJurisdiction } from './eligibility-policy.js';
 
 type AwardSource = ProjectEntity | CallEntity;
 
@@ -77,6 +81,16 @@ export class AwardsService {
         throw new BadRequestException(
           'Award asset must match the source asset',
         );
+      if (application.applicantOrganizationId) {
+        const organization = await manager.getRepository(OrganizationEntity).findOne({
+          where: { id: application.applicantOrganizationId, status: 'Active' },
+          lock: { mode: 'pessimistic_read' },
+        });
+        if (!organization) throw new ForbiddenException('Applicant organization is unavailable');
+        const rule = (application.sourceSnapshot as PublicationSnapshot).eligibilityRule;
+        if (rule) assertApplicantAudience(rule, organization.organizationType);
+        assertApplicantJurisdiction(rule, organization.country);
+      }
       const recipientOrganizationId = application.applicantOrganizationId;
       const recipientUserId = application.applicantUserId;
       const termsSnapshot = {

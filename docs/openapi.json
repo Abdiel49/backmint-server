@@ -3954,7 +3954,7 @@
     },
     "/api/awards/applications/{applicationId}": {
       "post": {
-        "description": "The authenticated publisher must own the source. The Application must be Selected. Creating this Award reserves source capacity but does not represent a deposit or payment.",
+        "description": "The authenticated publisher must own the source. The Application must be Selected. The applicant organization must still be active and satisfy the submitted source version’s audience and jurisdiction rules. Creating this Award reserves source capacity but does not represent a deposit or payment.",
         "operationId": "AwardsController_createFromApplication",
         "parameters": [
           {
@@ -4042,6 +4042,20 @@
                     "statusCode": 401,
                     "message": "A valid bearer session is required",
                     "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The applicant organization is unavailable or no longer satisfies its submitted eligibility policy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Applicant does not meet the publication audience requirements",
+                    "error": "Forbidden"
                   }
                 }
               }

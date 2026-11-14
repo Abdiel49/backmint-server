@@ -29,6 +29,7 @@ import {
   type QuestionnaireQuestion,
 } from './publication.types.js';
 import { assertSubmissionDirection } from './publication.validation.js';
+import { assertApplicantAudience, assertApplicantJurisdiction } from './eligibility-policy.js';
 
 export type ApplicationSubmission = {
   sourceType: PublicationSourceType;
@@ -477,10 +478,7 @@ export class ParticipationService {
   ): void {
     const rule = snapshot.eligibilityRule;
     if (!rule) return;
-    if (!rule.audienceTypes.includes(String(applicant.type)))
-      throw new ForbiddenException(
-        'Applicant does not meet the publication audience requirements',
-      );
+    assertApplicantAudience(rule, applicant.type);
     if (rule.verificationLevel)
       throw new ForbiddenException(
         'Required verification data is not available',
@@ -496,28 +494,7 @@ export class ParticipationService {
     snapshot: PublicationSnapshot,
     applicant: Record<string, unknown>,
   ): void {
-    const rule = snapshot.eligibilityRule;
-    if (
-      !rule?.allowedJurisdictions?.length &&
-      !rule?.excludedJurisdictions?.length
-    )
-      return;
-    const country = applicant.country;
-    if (typeof country !== 'string')
-      throw new ForbiddenException(
-        'Applicant jurisdiction data is not available',
-      );
-    if (
-      rule.allowedJurisdictions?.length &&
-      !rule.allowedJurisdictions.includes(country)
-    )
-      throw new ForbiddenException(
-        'Applicant is outside the allowed jurisdiction',
-      );
-    if (rule.excludedJurisdictions?.includes(country))
-      throw new ForbiddenException(
-        'Applicant is outside the allowed jurisdiction',
-      );
+    assertApplicantJurisdiction(snapshot.eligibilityRule, applicant.country);
   }
 
   private async assertApplicationQuota(
