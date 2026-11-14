@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -98,6 +99,24 @@ export class PublicationManagementController {
   @ApiBadRequestResponse({ description: 'Invalid Call fields or policy.', schema: { example: { statusCode: 400, message: 'A Call requires a non-empty audience', error: 'Bad Request' } } })
   async createCall(@Body() body: unknown, @CurrentSession() session: AuthenticatedSession) {
     return this.management.createCall(session.userId, this.parse(createCallSchema, body));
+  }
+
+  @Get('projects/:id')
+  @ApiOperation({ summary: 'Get a manageable Project' })
+  @ApiParam({ name: 'id', format: 'uuid', example: idExample })
+  @ApiBadRequestResponse({ description: 'The Project identifier is invalid.', schema: { example: { statusCode: 400, message: 'Validation failed (uuid is expected)', error: 'Bad Request' } } })
+  @ApiOkResponse({ description: 'Project retrieved.', schema: { example: { ...responseExample, title: 'Community Solar Pilot', direction: 'FundingRequested', content: { objectives: ['Install a 20 kW solar system'] } } } })
+  getProject(@Param('id', ParseUUIDPipe) id: string, @CurrentSession() session: AuthenticatedSession) {
+    return this.management.getProject(session.userId, id);
+  }
+
+  @Get('calls/:id')
+  @ApiOperation({ summary: 'Get a manageable Call' })
+  @ApiParam({ name: 'id', format: 'uuid', example: idExample })
+  @ApiBadRequestResponse({ description: 'The Call identifier is invalid.', schema: { example: { statusCode: 400, message: 'Validation failed (uuid is expected)', error: 'Bad Request' } } })
+  @ApiOkResponse({ description: 'Call retrieved.', schema: { example: { ...responseExample, content: { audienceTypes: ['Community', 'Nonprofit'] } } } })
+  getCall(@Param('id', ParseUUIDPipe) id: string, @CurrentSession() session: AuthenticatedSession) {
+    return this.management.getCall(session.userId, id);
   }
 
   @Patch('projects/:id')

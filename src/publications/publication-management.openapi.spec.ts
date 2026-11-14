@@ -26,6 +26,14 @@ describe('publication management OpenAPI contract', () => {
     const projectCreate = document.paths['/api/projects']?.post;
     const callCreate = document.paths['/api/calls']?.post;
 
+    for (const path of ['/api/projects/{id}', '/api/calls/{id}']) {
+      const operation = document.paths[path]?.get;
+      expect(operation?.security).toEqual([{ bearer: [] }]);
+      for (const status of ['200', '400', '401', '403', '404']) {
+        expect(operation?.responses?.[status]).toMatchObject({ description: expect.any(String), content: { 'application/json': { schema: { example: expect.any(Object) } } } });
+      }
+    }
+
     expect(Object.keys(document.paths)).toHaveLength(12);
     expect(projectCreate?.security).toEqual([{ bearer: [] }]);
     expect(projectCreate?.requestBody?.content?.['application/json']?.schema).toMatchObject({
