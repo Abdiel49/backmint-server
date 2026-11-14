@@ -22,6 +22,7 @@ import { HealthModule } from './health/health.module.js';
 import { AsyncQueuesModule } from './infrastructure/async-queues/async-queues.module.js';
 import { NearModule } from './infrastructure/near/near.module.js';
 import { ObjectStorageModule } from './infrastructure/object-storage/object-storage.module.js';
+import { IdentityModule } from './identity/identity.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { OutboxModule } from './infrastructure/outbox/outbox.module.js';
 
@@ -113,6 +114,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     NearModule,
     OrganizationsModule,
     HealthModule,
+    IdentityModule,
   ],
   controllers: [AppController],
   providers: [
