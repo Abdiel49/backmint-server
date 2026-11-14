@@ -236,7 +236,7 @@ export class ParticipationService {
         lock: { mode: 'pessimistic_write' },
       });
       if (attachments.length !== attachmentIds.length || attachments.some((attachment) =>
-        attachment.applicationId !== null || !['PendingUpload', 'Uploaded'].includes(attachment.status) ||
+        attachment.applicationId !== null || !['PendingUpload', 'Uploaded', 'Clean'].includes(attachment.status) ||
         (input.applicantOrganizationId
           ? attachment.organizationId !== input.applicantOrganizationId
           : attachment.organizationId !== null || attachment.uploadedByUserId !== input.applicantUserId)))

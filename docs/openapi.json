@@ -4873,7 +4873,7 @@
     },
     "/api/applications/attachments/{attachmentId}/complete": {
       "post": {
-        "description": "Checks object size and SHA-256 checksum. The attachment remains unavailable for review and pending malware scanning.",
+        "description": "Checks object size and SHA-256 checksum and queues malware scanning. The attachment remains unavailable for review until further integration.",
         "operationId": "ApplicationAttachmentController_completeUpload",
         "parameters": [
           {
@@ -4889,7 +4889,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Upload verified; malware scanning is still pending.",
+            "description": "Upload verified and scan queued, or an existing scan result returned.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4972,13 +4972,13 @@
             }
           },
           "503": {
-            "description": "Private object storage is unavailable.",
+            "description": "Private object storage or scan queue is unavailable.",
             "content": {
               "application/json": {
                 "schema": {
                   "example": {
                     "statusCode": 503,
-                    "message": "Private object storage is unavailable for upload verification",
+                    "message": "Attachment malware scan could not be queued; retry upload completion",
                     "error": "Service Unavailable"
                   }
                 }
