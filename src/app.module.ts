@@ -27,6 +27,7 @@ import { IdentityModule } from './identity/identity.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { OutboxModule } from './infrastructure/outbox/outbox.module.js';
 import { PublicationsModule } from './publications/publications.module.js';
+import { ApplicationLifecycleModule } from './publications/application-lifecycle.module.js';
 import { AuditPersistenceModule } from './audit/audit-persistence.module.js';
 import { OutcomeClaimsModule } from './impact/outcome-claims.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
@@ -34,6 +35,9 @@ import { VerificationModule } from './verification/verification.module.js';
 import { ChainOperationsModule } from './finance/chain-operations.module.js';
 import { AIReviewModule } from './ai-review/ai-review.module.js';
 import { ExternalEmbedsModule } from './external-embeds/external-embeds.module.js';
+import { EligibilityAdminModule } from './publications/eligibility-admin.module.js';
+import { ParticipationModule } from './participation/participation.module.js';
+import { AgreementsModule } from './agreements/agreements.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -129,11 +133,15 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     HealthModule,
     IdentityModule,
     PublicationsModule,
+    ApplicationLifecycleModule,
     NotificationsModule,
     VerificationModule,
     ChainOperationsModule,
     AIReviewModule,
     ExternalEmbedsModule,
+    EligibilityAdminModule,
+    ParticipationModule,
+    AgreementsModule,
   ],
   controllers: [AppController],
   providers: [

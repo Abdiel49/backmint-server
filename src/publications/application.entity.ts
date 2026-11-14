@@ -25,6 +25,9 @@ export class ApplicationEntity {
   sourceId!: string;
 
   @Column({ type: 'uuid', nullable: true })
+  supersedesApplicationId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
   applicantOrganizationId!: string | null;
 
   @Column({ type: 'uuid', nullable: true })
