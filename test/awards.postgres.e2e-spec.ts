@@ -9,6 +9,7 @@ import {
 } from '../src/evaluations/evaluation.entity.js';
 import { EvaluationsService } from '../src/evaluations/evaluations.service.js';
 import {
+  ApplicationAnswerEntity,
   ApplicationEntity,
   FundingOfferEntity,
 } from '../src/publications/application.entity.js';
@@ -36,6 +37,7 @@ describe.skipIf(!postgresIntegration)(
           IdentityProviderEntity,
           ProjectEntity,
           ApplicationEntity,
+          ApplicationAnswerEntity,
           FundingOfferEntity,
           AwardEntity,
           EvaluationRoundEntity,
@@ -203,6 +205,25 @@ describe.skipIf(!postgresIntegration)(
         expect(await connection.getRepository(AwardEntity).count({ where: { applicationId: application.id } })).toBe(0);
       }
       await expect(create(0)).resolves.toMatchObject({ state: 'Offered', recipientOrganizationId: organizations[0].id });
+    });
+
+    it('rejects unverified application attachments before reserving an Award', async () => {
+      const { applications, users } = await fixture({ maximumAwards: 2, budget: '100' });
+      for (const application of applications) {
+        await evaluations.selectApplication({ applicationId: application.id, actorUserId: users[0].id });
+      }
+      await connection.getRepository(ApplicationAnswerEntity).save([
+        { applicationId: applications[0].id, questionKey: 'supporting-document', answer: {}, attachmentIds: ['document-1'], fileScanStatus: 'Pending' },
+        { applicationId: applications[1].id, questionKey: 'description', answer: 'Solar installation', attachmentIds: [], fileScanStatus: 'NotRequired' },
+      ]);
+      const create = (index: number) => service.createFromApplication({
+        applicationId: applications[index].id, allocation: '50', asset: 'near:testnet:token',
+        expiresAt: new Date(Date.now() + 60_000), actorUserId: users[0].id,
+      });
+      await expect(create(0)).rejects.toThrow('Application attachments require verified scanning');
+      expect((await connection.getRepository(ApplicationEntity).findOneByOrFail({ id: applications[0].id })).status).toBe('Selected');
+      expect(await connection.getRepository(AwardEntity).count({ where: { applicationId: applications[0].id } })).toBe(0);
+      await expect(create(1)).resolves.toMatchObject({ state: 'Offered', allocation: '50' });
     });
 
     it('serializes concurrent awards against maxAwards and releases a decline exactly once', async () => {
