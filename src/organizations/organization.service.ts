@@ -25,6 +25,23 @@ export type CreateOrganizationInput = {
 export class OrganizationService {
   constructor(private readonly dataSource: DataSource) {}
 
+  async listForUser(userId: string): Promise<OrganizationEntity[]> {
+    const memberships = await this.dataSource
+      .getRepository(OrganizationMembershipEntity)
+      .find({
+        where: {
+          userId,
+          status: OrganizationMembershipStatus.Active,
+        },
+        relations: { organization: true },
+        order: { createdAt: 'ASC' },
+      });
+
+    return memberships
+      .map((membership) => membership.organization)
+      .filter((organization) => organization.status === 'Active');
+  }
+
   async create(
     ownerUserId: string,
     input: CreateOrganizationInput,
