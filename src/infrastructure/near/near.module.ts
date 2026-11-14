@@ -29,6 +29,6 @@ import { NearRpcService } from './near-rpc.service.js';
     },
     NearRpcService,
   ],
-  exports: [NEAR_RPC_CLIENT, NEAR_RPC_PROVIDER],
+  exports: [NEAR_RPC_CLIENT, NEAR_RPC_PROVIDER, NearRpcService],
 })
 export class NearModule {}
