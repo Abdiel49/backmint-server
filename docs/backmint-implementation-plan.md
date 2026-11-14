@@ -100,8 +100,10 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Done when: only currently verified representatives may accept legal terms in production mode.
   - Evidence: `feature/organization-membership-authority` at `2c971a6`; [PR #26](https://github.com/Abdiel49/backmint-server/pull/26) is open.
   - Failure: FAILED — <UTC timestamp> — non-representative can bind an organization — legal authority risk — <owner> — block acceptance and audit prior actions.
-- [ ] Implement private verification document uploads, `VerificationCase`, reviewer workflow, expiry and revocation.
+- [x] Implement private verification document uploads, `VerificationCase`, reviewer workflow, expiry and revocation.
   - Done when: verification transitions support `NotStarted`, `Pending`, `NeedsInfo`, `Verified`, `Rejected`, `Expired` and `Revoked` without leaking sensitive denial signals.
+  - Evidence: `feature/verification-workflow` at `6857c01` and `45840fd`; [PR #31](https://github.com/Abdiel49/backmint-server/pull/31). Authenticated service operations, scoped private object storage references, reviewer decision history, self-review prevention, hourly expiry and role/resource access tests.
+  - Limitation: no HTTP endpoints are exposed yet; object storage upload completion/scanning is not verified by the current storage adapter.
   - Failure: FAILED — <UTC timestamp> — verification evidence/status is exposed or transition invalid — privacy/compliance risk — <owner> — restrict access and repair workflow.
 - [ ] Implement authentication and authorization packages with JWT/session guards, CSRF protection for cookie flows, RBAC plus resource-level ABAC.
   - Done when: every protected endpoint has policy tests for self, teammate, other organization and anonymous users.
@@ -133,20 +135,25 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 4 — Applications and FundingOffers
 
-- [ ] Implement `Application`, `ApplicationAnswer`, proposal snapshots, project reference option, attachments and receipt generation for `FundingOffered` sources.
+- [~] Implement `Application`, `ApplicationAnswer`, proposal snapshots, project reference option, attachments and receipt generation for `FundingOffered` sources.
   - Done when: submission stores the source/version and applicant snapshot atomically and immutably.
+  - Evidence: `feature/applications-funding-offers` at `b4de80b`; [PR #33](https://github.com/Abdiel49/backmint-server/pull/33) targets `develop`. Includes atomic Application/Answer persistence, database-enforced immutable snapshots/answers, source-version and applicant snapshots, optional Project reference and unique receipt. Attachments are retained as pending-scan references; no scan completion workflow exists yet. No HTTP route is exposed before authenticated actor context is available.
   - Failure: FAILED — <UTC timestamp> — submitted proposal is mutable or missing source version — review integrity risk — <owner> — restore snapshot and block amendment.
-- [ ] Enforce application intake, applicant type, country, verification, per-applicant quota, required answers, file scan status and eligibility at submission and again before award.
+- [~] Enforce application intake, applicant type, country, verification, per-applicant quota, required answers, file scan status and eligibility at submission and again before award.
   - Done when: each rejection has a safe, traceable reason and no sensitive signal is disclosed publicly.
+  - Evidence: submission enforces direction, publication lifecycle/intake/window, available organization type/country rules, required/question-option validation, duplicate and configured per-applicant quotas. Jurisdiction rules fail closed without applicant country; required verification/minimum evidence fail closed because `VerificationCase` is not implemented. Attachments set `PendingFileScan`. Award-time revalidation remains pending because awards do not exist.
   - Failure: FAILED — <UTC timestamp> — ineligible/duplicate application accepted — selection integrity risk — <owner> — invalidate submission and repair rule evaluation.
-- [ ] Implement withdrawal, amendment, resubmission and prior-version retention according to source policy.
+- [~] Implement withdrawal, amendment, resubmission and prior-version retention according to source policy.
   - Done when: amendments never overwrite prior submitted content and disallowed changes are rejected.
+  - Evidence: submitted snapshots and answers are immutable; withdrawal, amendment, resubmission and application state transitions are not implemented.
   - Failure: FAILED — <UTC timestamp> — amendment breaks policy/history — audit integrity risk — <owner> — restore version and correct transition.
-- [ ] Implement `FundingOffer` for `FundingRequested` sources, including asset, amount, in-kind support, conditions and restricted purpose.
+- [~] Implement `FundingOffer` for `FundingRequested` sources, including asset, amount, in-kind support, conditions and restricted purpose.
   - Done when: offers reject unsupported assets, over-hard-cap values, prohibited jurisdictions and contradictory terms.
+  - Evidence: `feature/applications-funding-offers` persists integer base-unit amount, asset, in-kind support type, condition/restricted-purpose snapshots and source version; validates direction, intake, publication asset, eligibility/jurisdiction where source rules and organization country are available, and per-offer hard cap. A configured asset allowlist and complete prohibited-jurisdiction/compliance policy are not present.
   - Failure: FAILED — <UTC timestamp> — invalid offer accepted — funding/compliance risk — <owner> — void offer and repair validation.
-- [ ] Implement FundingOffer review, acceptance/decline and conversion to Award plus negotiated Agreement, without treating an offer as a deposit.
+- [~] Implement FundingOffer review, acceptance/decline and conversion to Award plus negotiated Agreement, without treating an offer as a deposit.
   - Done when: accepted offer is visibly `Award`/`AgreementPending` until chain-confirmed deposit.
+  - Evidence: offers can be submitted, moved under review, accepted or declined by an active source-owner organization Owner/Admin/Evaluator or source owner user; accepted offers are not displayed as deposited, and aggregate accepted amount respects a configured hard cap. Award and Agreement aggregates do not exist, so conversion is not implemented.
   - Failure: FAILED — <UTC timestamp> — offer shown as funded/deposited — misleading balance state — <owner> — correct read model and audit notification.
 
 ## Phase 5 — Evaluations, AI assistance and awards
@@ -160,7 +167,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Implement `AIReview` as advisory output with model/version, prompt version, source document references, uncertainty flags, consent and retention controls.
   - Done when: AI output cites specific source fields and cannot invoke selection, agreement, payment or chain actions.
   - Failure: FAILED — <UTC timestamp> — AI output is uncited, leaks PII or triggers action — safety/privacy risk — <owner> — disable workflow, purge per policy and remediate prompt/access path.
-- [ ] Implement deterministic eligibility findings: `Eligible`, `NeedsReview`, `Ineligible`, `MissingInformation`.
+- [~] Implement deterministic eligibility findings: `Eligible`, `NeedsReview`, `Ineligible`, `MissingInformation`.
   - Done when: each result is reproducible from stored rules and inputs, separate from subjective reviewer scoring.
   - Failure: FAILED — <UTC timestamp> — eligibility cannot be explained/reproduced — decision traceability failure — <owner> — correct evaluator and reprocess affected cases.
 - [ ] Implement `Award` creation from Application or FundingOffer with allocation, asset, recipient, expiry and terms snapshot.

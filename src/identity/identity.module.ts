@@ -22,7 +22,17 @@ import { NearModule } from '../infrastructure/near/near.module.js';
     ]),
     NearModule,
   ],
-  providers: [IdentityService, WalletLinkService],
-  exports: [IdentityService, WalletLinkService],
+  providers: [
+    IdentityService,
+    WalletLinkService,
+    AuthSessionService,
+    AuthSessionGuard,
+  ],
+  exports: [
+    IdentityService,
+    WalletLinkService,
+    AuthSessionService,
+    AuthSessionGuard,
+  ],
 })
 export class IdentityModule {}
