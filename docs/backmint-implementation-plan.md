@@ -83,7 +83,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 2 — Identity, authentication, organizations and verification
 
-- [ ] Implement `User` and `IdentityProvider` persistence, registration/login/recovery flows, sessions/tokens and account security controls.
+- [~] Implement `User` and `IdentityProvider` persistence, registration/login/recovery flows, sessions/tokens and account security controls.
   - Done when: authenticated identity is established through a verified provider and session revocation/recovery is tested.
   - Failure: FAILED — <UTC timestamp> — identity/session flow allows impersonation or unrecoverable access — account security risk — <owner> — disable affected flow and remediate.
 - [ ] Implement wallet challenge issuance, signature verification, `WalletLink` creation and revocation.
