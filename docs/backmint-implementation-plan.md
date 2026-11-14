@@ -41,8 +41,9 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [x] Maintain Docker Compose development services for PostgreSQL and Redis with health checks and persistent database volume.
   - Done when: `docker compose up -d` reports healthy dependencies and the e2e suite can connect to both services.
   - Failure: FAILED — <UTC timestamp> — dependency container unhealthy — local integration unavailable — <owner> — inspect service logs and repair Compose/environment configuration.
-- [x] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
+- [~] Configure TypeORM migrations, migration generation, migration execution and a no-`synchronize` production policy.
   - Done when: a blank database can be migrated up and down in CI; production startup never mutates schema automatically.
+  - Evidence: `scripts/verify-migrations.js` applies every migration, rolls them all back, and reapplies them against a blank PostgreSQL database. GitHub Actions now runs this job; its first pull-request result is pending.
   - Failure: FAILED — <UTC timestamp> — migration is non-reproducible or destructive — schema deployment unsafe — <owner> — repair migration and test from an empty database.
 - [x] Configure global HTTP rate limiting with stricter policies for authentication, uploads, financial initiation and public embeds.
   - Done when: integration tests prove normal requests pass, abusive requests receive `429`, and health probes remain available.

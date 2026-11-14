@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: backmint
+          POSTGRES_PASSWORD: backmint
+          POSTGRES_DB: backmint
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U backmint -d backmint"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      PORT: 3001
+      API_PREFIX: api
+      SWAGGER_PATH: docs
+      SWAGGER_JSON_PATH: docs/openapi.json
+      CORS_ORIGINS: http://localhost:3001
+      TRUSTED_PROXY_HOPS: 0
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 5432
+      DATABASE_NAME: backmint
+      DATABASE_USERNAME: backmint
+      DATABASE_PASSWORD: backmint
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      OBJECT_STORAGE_ENDPOINT: https://s3.example.test
+      OBJECT_STORAGE_REGION: us-east-1
+      OBJECT_STORAGE_BUCKET: backmint-test
+      OBJECT_STORAGE_ACCESS_KEY: test-access-key
+      OBJECT_STORAGE_SECRET_KEY: test-secret-key
+      OBJECT_STORAGE_FORCE_PATH_STYLE: 'true'
+      NEAR_NETWORK: testnet
+      NEAR_RPC_URL: https://rpc.testnet.near.org
+      NEAR_CONTRACT_ID: backmint.testnet
+      NEAR_CONTRACT_VERSION: 0.1.0
+      OBSERVE_APP_KEY: ''
+      OBSERVE_APP_SECRET: ''
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.9.2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm migration:verify
+      - run: pnpm migration:run
+      - run: pnpm test:e2e
