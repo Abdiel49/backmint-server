@@ -98,7 +98,7 @@ export class EvidenceSubmissionEntity {
   submittedByUserId!: string;
 
   @Column({ type: 'varchar', length: 24, default: 'Submitted' })
-  status!: string;
+  status!: 'PendingUpload' | 'Scanning' | 'Submitted' | 'Quarantined' | 'Withdrawn' | 'ChangesRequested' | 'Superseded';
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

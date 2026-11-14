@@ -54,6 +54,9 @@ export class MilestoneReviewsService {
         where: { milestoneId: milestone.id, version: input.evidenceVersion },
       });
       if (!submission) throw new NotFoundException('Evidence version was not found');
+      if (submission.status !== 'Submitted') {
+        throw new ConflictException('Evidence submission has not completed malware scanning');
+      }
       const assets = await manager.getRepository(EvidenceAssetEntity).find({
         where: { evidenceSubmissionId: submission.id },
         order: { id: 'ASC' },

@@ -7323,6 +7323,264 @@
         ]
       }
     },
+    "/api/milestones/{milestoneId}/evidence": {
+      "post": {
+        "description": "Only an active Award recipient may create an upload. Every asset is private and remains unavailable to reviewers until storage checks and malware scanning pass.",
+        "operationId": "MilestoneEvidenceController_createUpload",
+        "parameters": [
+          {
+            "name": "milestoneId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "e8cf3664-5575-4e06-92a4-c822a873d213",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "assets": {
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "checksumSha256": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "mimeType": {
+                          "type": "string",
+                          "maxLength": 255,
+                          "pattern": "^[\\w.+-]+\\/[\\w.+-]+$"
+                        },
+                        "sizeBytes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "exclusiveMinimum": true,
+                          "maximum": 50000000
+                        }
+                      },
+                      "required": [
+                        "checksumSha256",
+                        "mimeType",
+                        "sizeBytes"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "assets"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Evidence version created with short-lived upload URLs. Call the completion endpoint after every file is uploaded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "milestoneId": "e8cf3664-5575-4e06-92a4-c822a873d213",
+                    "submissionId": "ab9937a4-a409-4442-99e1-a08dfb1a023b",
+                    "version": 1,
+                    "status": "PendingUpload",
+                    "uploadAssets": [
+                      {
+                        "assetId": "4e38df44-63d1-467a-90d4-bde6bce3e6db",
+                        "uploadUrl": "https://objects.example.test/backmint/milestones/...?...",
+                        "expiresAt": "2026-11-14T14:00:00.000Z",
+                        "requiredHeaders": {
+                          "content-type": "application/pdf",
+                          "x-amz-checksum-sha256": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo="
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Asset count, MIME type, checksum, or size is invalid."
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "403": {
+            "description": "Only an active member of the Award recipient may upload evidence."
+          },
+          "404": {
+            "description": "Milestone or Award was not found."
+          },
+          "409": {
+            "description": "Milestone is not accepting evidence or another upload is in progress."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a private, versioned milestone evidence upload",
+        "tags": [
+          "Milestones"
+        ]
+      }
+    },
+    "/api/milestones/{milestoneId}/evidence/{submissionId}/complete": {
+      "post": {
+        "operationId": "MilestoneEvidenceController_completeUpload",
+        "parameters": [
+          {
+            "name": "milestoneId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "e8cf3664-5575-4e06-92a4-c822a873d213",
+              "type": "string"
+            }
+          },
+          {
+            "name": "submissionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "ab9937a4-a409-4442-99e1-a08dfb1a023b",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The upload is complete and private scanning is in progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "submissionId": "ab9937a4-a409-4442-99e1-a08dfb1a023b",
+                    "version": 1,
+                    "status": "Scanning"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "403": {
+            "description": "Only the Award recipient may complete evidence uploads."
+          },
+          "404": {
+            "description": "Milestone or evidence submission was not found."
+          },
+          "409": {
+            "description": "Stored object size/checksum does not match or evidence is quarantined."
+          },
+          "503": {
+            "description": "Private storage or scan queue is temporarily unavailable; retry completion."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify uploaded milestone evidence and queue malware scanning",
+        "tags": [
+          "Milestones"
+        ]
+      }
+    },
+    "/api/milestones/{milestoneId}/evidence/{submissionId}/assets/{assetId}/download": {
+      "get": {
+        "operationId": "MilestoneEvidenceController_createDownloadUrl",
+        "parameters": [
+          {
+            "name": "milestoneId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "e8cf3664-5575-4e06-92a4-c822a873d213",
+              "type": "string"
+            }
+          },
+          {
+            "name": "submissionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "ab9937a4-a409-4442-99e1-a08dfb1a023b",
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "4e38df44-63d1-467a-90d4-bde6bce3e6db",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "URL returned to an authorized recipient, uploader, or assigned reviewer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "assetId": "4e38df44-63d1-467a-90d4-bde6bce3e6db",
+                    "url": "https://objects.example.test/backmint/milestones/...?...",
+                    "expiresAt": "2026-11-14T14:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required."
+          },
+          "403": {
+            "description": "Award recipient or assigned reviewer access is required."
+          },
+          "404": {
+            "description": "Milestone, submission, or evidence asset was not found."
+          },
+          "409": {
+            "description": "Evidence is not available until all assets pass scanning."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a short-lived private download URL for scanned milestone evidence",
+        "tags": [
+          "Milestones"
+        ]
+      }
+    },
     "/api/public/organizations": {
       "get": {
         "operationId": "PublicProfilesController_listOrganizations",
