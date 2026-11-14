@@ -39,6 +39,7 @@ import { ExternalEmbedsModule } from './external-embeds/external-embeds.module.j
 import { EligibilityAdminModule } from './publications/eligibility-admin.module.js';
 import { ParticipationModule } from './participation/participation.module.js';
 import { AgreementsModule } from './agreements/agreements.module.js';
+import { PublicProfilesModule } from './public-profiles/public-profiles.module.js';
 import { VerificationDocumentScanModule } from './verification/verification-document-scan.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
@@ -146,6 +147,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     EligibilityAdminModule,
     ParticipationModule,
     AgreementsModule,
+    PublicProfilesModule,
   ],
   controllers: [AppController],
   providers: [

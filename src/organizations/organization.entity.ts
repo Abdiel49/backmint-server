@@ -73,6 +73,9 @@ export class OrganizationEntity {
   @Column({ type: 'varchar', length: 16, default: 'Active' })
   status!: OrganizationStatus;
 
+  @Column({ type: 'boolean', default: false })
+  discloseVerificationStatus!: boolean;
+
   @Column({ type: 'uuid' })
   ownerUserId!: string;
 
