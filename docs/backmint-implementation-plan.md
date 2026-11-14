@@ -47,7 +47,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Configure global HTTP rate limiting with stricter policies for authentication, uploads, financial initiation and public embeds.
   - Done when: integration tests prove normal requests pass, abusive requests receive `429`, and health probes remain available.
   - Failure: FAILED — <UTC timestamp> — rate policy is bypassed or blocks health probes — abuse/availability risk — <owner> — correct guard/decorator configuration.
-- [ ] Configure CORS, trusted proxy policy, graceful shutdown and structured request/error logging.
+- [x] Configure CORS, trusted proxy policy, graceful shutdown and structured request/error logging.
   - Done when: only configured origins receive credentialed responses, shutdown closes cleanly, and request IDs are present in logs.
   - Failure: FAILED — <UTC timestamp> — cross-origin or shutdown policy incorrect — security/availability risk — <owner> — correct bootstrap configuration and add integration coverage.
 - [x] Configure event emitter, scheduler and BullMQ/Redis queues for notifications, malware scans, chain reconciliation, aggregation and retryable delivery.
