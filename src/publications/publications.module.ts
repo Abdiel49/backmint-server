@@ -23,6 +23,7 @@ import {
   EvaluationRoundEntity,
 } from '../evaluations/evaluation.entity.js';
 import { EvaluationsService } from '../evaluations/evaluations.service.js';
+import { EvaluationsController } from '../evaluations/evaluations.controller.js';
 import { AwardEntity } from './award.entity.js';
 import { AwardsService } from './awards.service.js';
 import { PublicationManagementController } from './publication-management.controller.js';
