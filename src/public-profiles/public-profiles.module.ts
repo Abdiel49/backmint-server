@@ -5,13 +5,14 @@ import { VerificationCaseEntity } from '../verification/verification-case.entity
 import { ProjectEntity } from '../publications/project.entity.js';
 import { CallEntity } from '../publications/call.entity.js';
 import { OrganizationMembershipEntity } from '../organizations/organization-membership.entity.js';
-import { AuthSessionGuard } from '../identity/auth-session.guard.js';
+import { IdentityModule } from '../identity/identity.module.js';
 import { PublicProfileDisclosureController } from './public-profile-disclosure.controller.js';
 import { PublicProfilesController } from './public-profiles.controller.js';
 import { PublicProfilesService } from './public-profiles.service.js';
 
 @Module({
   imports: [
+    IdentityModule,
     TypeOrmModule.forFeature([
       OrganizationEntity,
       OrganizationMembershipEntity,
@@ -21,6 +22,6 @@ import { PublicProfilesService } from './public-profiles.service.js';
     ]),
   ],
   controllers: [PublicProfilesController, PublicProfileDisclosureController],
-  providers: [PublicProfilesService, AuthSessionGuard],
+  providers: [PublicProfilesService],
 })
 export class PublicProfilesModule {}
