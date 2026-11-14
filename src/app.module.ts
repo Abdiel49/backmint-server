@@ -14,6 +14,7 @@ import {
   databaseConfig,
   nearConfig,
   objectStorageConfig,
+  malwareScanConfig,
   observeConfig,
   walletConfig,
   queuesConfig,
@@ -39,6 +40,7 @@ import { EligibilityAdminModule } from './publications/eligibility-admin.module.
 import { ParticipationModule } from './participation/participation.module.js';
 import { AgreementsModule } from './agreements/agreements.module.js';
 import { PublicProfilesModule } from './public-profiles/public-profiles.module.js';
+import { VerificationDocumentScanModule } from './verification/verification-document-scan.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -53,6 +55,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         redisConfig,
         queuesConfig,
         objectStorageConfig,
+        malwareScanConfig,
         nearConfig,
         observeConfig,
         walletConfig,
@@ -137,6 +140,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ApplicationLifecycleModule,
     NotificationsModule,
     VerificationModule,
+    VerificationDocumentScanModule,
     ChainOperationsModule,
     AIReviewModule,
     ExternalEmbedsModule,
