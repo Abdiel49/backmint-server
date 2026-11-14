@@ -44,6 +44,25 @@ The API reads runtime settings through NestJS `ConfigModule`. Configure S3-compa
 
 Credentialed CORS requests are limited to `CORS_ORIGINS`. Set `TRUSTED_PROXY_HOPS` only to the number of trusted reverse proxies in front of the service; it defaults to `0`. Each HTTP request receives a validated `X-Request-Id` or a generated UUID, returned in the response and included in structured request logs. Nest shutdown hooks close application providers during termination.
 
+## Database migrations
+
+Application startup never synchronizes the schema or runs pending migrations. Apply schema changes explicitly:
+
+```bash
+pnpm migration:show
+pnpm migration:run
+pnpm migration:revert
+```
+
+Create or generate a timestamped migration with:
+
+```bash
+pnpm migration:create -- src/database/migrations/DescribeChange
+pnpm migration:generate -- src/database/migrations/DescribeChange
+```
+
+Review generated SQL before applying it. Keep migrations reversible and use the shared PostgreSQL configuration from `.env`. The initial baseline is intentionally a no-op until the first domain schema is defined; it verifies CLI discovery and migration bookkeeping without introducing unowned tables.
+
 ## Compile and run the project
 
 ```bash
