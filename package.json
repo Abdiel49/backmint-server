@@ -25,7 +25,9 @@
     "migration:run": "tsx ./node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts",
     "migration:revert": "tsx ./node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts",
     "migration:show": "tsx ./node_modules/typeorm/cli.js migration:show -d src/database/data-source.ts",
-    "migration:verify": "node ./scripts/verify-migrations.js"
+    "migration:verify": "node ./scripts/verify-migrations.js",
+    "openapi:generate": "pnpm build && node scripts/generate-openapi.mjs",
+    "openapi:types": "openapi-typescript docs/openapi.json --output src/generated/backmint-api.d.ts && node scripts/strip-generated-comments.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1168.0",
@@ -45,6 +47,7 @@
     "bullmq": "^6.7.5",
     "ioredis": "^5.11.1",
     "near-api-js": "^7.5.3",
+    "openapi-fetch": "^0.17.0",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -60,6 +63,7 @@
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",
+    "openapi-typescript": "^7.13.0",
     "oxlint": "^1.58.0",
     "oxlint-tsgolint": "^7.0.2001",
     "prettier": "^3.4.2",

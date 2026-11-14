@@ -6,7 +6,19 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { VerificationCaseEntity } from './verification-case.entity.js';
+import type { VerificationCaseEntity } from './verification-case.entity.js';
+
+export const VerificationDocumentScanStatus = {
+  PendingUpload: 'PendingUpload',
+  Queued: 'Queued',
+  Scanning: 'Scanning',
+  Passed: 'Passed',
+  Infected: 'Infected',
+  Quarantined: 'Quarantined',
+} as const;
+
+export type VerificationDocumentScanStatus =
+  (typeof VerificationDocumentScanStatus)[keyof typeof VerificationDocumentScanStatus];
 
 @Entity('verification_documents')
 export class VerificationDocumentEntity {
@@ -17,8 +29,8 @@ export class VerificationDocumentEntity {
   verificationCaseId!: string;
 
   @ManyToOne(
-    () => VerificationCaseEntity,
-    (verificationCase) => verificationCase.documents,
+    'VerificationCaseEntity',
+    (verificationCase: VerificationCaseEntity) => verificationCase.documents,
     {
       onDelete: 'CASCADE',
     },
@@ -43,6 +55,25 @@ export class VerificationDocumentEntity {
 
   @Column({ type: 'uuid' })
   uploadedByUserId!: string;
+
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: VerificationDocumentScanStatus.PendingUpload,
+  })
+  scanStatus!: VerificationDocumentScanStatus;
+
+  @Column({ type: 'integer', default: 0 })
+  scanAttempts!: number;
+
+  @Column({ type: 'text', nullable: true })
+  scanFailure!: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  uploadedAt!: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  scannedAt!: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

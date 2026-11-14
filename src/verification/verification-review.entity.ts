@@ -6,7 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { VerificationCaseEntity } from './verification-case.entity.js';
+import type { VerificationCaseEntity } from './verification-case.entity.js';
 
 @Entity('verification_reviews')
 export class VerificationReviewEntity {
@@ -17,8 +17,8 @@ export class VerificationReviewEntity {
   verificationCaseId!: string;
 
   @ManyToOne(
-    () => VerificationCaseEntity,
-    (verificationCase) => verificationCase.reviews,
+    'VerificationCaseEntity',
+    (verificationCase: VerificationCaseEntity) => verificationCase.reviews,
     {
       onDelete: 'CASCADE',
     },

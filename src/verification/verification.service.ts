@@ -18,7 +18,10 @@ import {
   VerificationCaseEntity,
   VerificationStatus,
 } from './verification-case.entity.js';
-import { VerificationDocumentEntity } from './verification-document.entity.js';
+import {
+  VerificationDocumentEntity,
+  VerificationDocumentScanStatus,
+} from './verification-document.entity.js';
 import { VerificationReviewEntity } from './verification-review.entity.js';
 
 export type VerificationUploadInput = {
@@ -100,46 +103,85 @@ export class VerificationService {
     ) {
       throw new ConflictException('Document metadata is invalid');
     }
-    const scope = this.documentScope(verificationCase);
-    const upload = await this.storage.createUploadUrl({ scope, ...input });
-    await this.documents.save(
-      this.documents.create({
-        verificationCaseId: caseId,
-        objectKey: upload.key,
-        fileName,
-        contentType: input.contentType,
-        contentLength: input.contentLength,
-        checksumSha256: input.checksumSha256,
-        uploadedByUserId: actorUserId,
-      }),
-    );
-    return upload;
+    return this.cases.manager.transaction(async (manager) => {
+      const caseRepository = manager.getRepository(VerificationCaseEntity);
+      const documentRepository = manager.getRepository(
+        VerificationDocumentEntity,
+      );
+      const lockedCase = await caseRepository.findOne({
+        where: { id: caseId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedCase || !this.isEditable(lockedCase.status)) {
+        throw new ConflictException(
+          'Verification evidence cannot be changed in this state',
+        );
+      }
+      const scope = this.documentScope(lockedCase);
+      const upload = await this.storage.createUploadUrl({ scope, ...input });
+      await documentRepository.save(
+        documentRepository.create({
+          verificationCaseId: caseId,
+          objectKey: upload.key,
+          fileName,
+          contentType: input.contentType,
+          contentLength: input.contentLength,
+          checksumSha256: input.checksumSha256,
+          uploadedByUserId: actorUserId,
+          scanStatus: VerificationDocumentScanStatus.PendingUpload,
+          scanAttempts: 0,
+          scanFailure: null,
+          uploadedAt: null,
+          scannedAt: null,
+        }),
+      );
+      return upload;
+    });
   }
 
   async submit(
     actorUserId: string,
     caseId: string,
   ): Promise<VerificationCaseEntity> {
-    const verificationCase = await this.getAuthorizedCase(
-      actorUserId,
-      caseId,
-      'organization.manage',
-    );
-    if (!this.isEditable(verificationCase.status)) {
-      throw new ConflictException(
-        'Verification case cannot be submitted in this state',
+    await this.getAuthorizedCase(actorUserId, caseId, 'organization.manage');
+    return this.cases.manager.transaction(async (manager) => {
+      const caseRepository = manager.getRepository(VerificationCaseEntity);
+      const documentRepository = manager.getRepository(
+        VerificationDocumentEntity,
       );
-    }
-    if (!(await this.documents.existsBy({ verificationCaseId: caseId }))) {
-      throw new ConflictException(
-        'At least one verification document is required',
-      );
-    }
-    verificationCase.status = VerificationStatus.Pending;
-    verificationCase.decidedByUserId = null;
-    verificationCase.decisionReason = null;
-    verificationCase.expiresAt = null;
-    return this.cases.save(verificationCase);
+      const lockedCase = await caseRepository.findOne({
+        where: { id: caseId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedCase || !this.isEditable(lockedCase.status)) {
+        throw new ConflictException(
+          'Verification case cannot be submitted in this state',
+        );
+      }
+      const documents = await documentRepository.findBy({
+        verificationCaseId: caseId,
+      });
+      if (!documents.length) {
+        throw new ConflictException(
+          'At least one verification document is required',
+        );
+      }
+      if (
+        documents.some(
+          (document) =>
+            document.scanStatus !== VerificationDocumentScanStatus.Passed,
+        )
+      ) {
+        throw new ConflictException(
+          'Every verification document must be uploaded and pass malware scanning',
+        );
+      }
+      lockedCase.status = VerificationStatus.Pending;
+      lockedCase.decidedByUserId = null;
+      lockedCase.decisionReason = null;
+      lockedCase.expiresAt = null;
+      return caseRepository.save(lockedCase);
+    });
   }
 
   async decide(
@@ -257,6 +299,13 @@ export class VerificationService {
     );
   }
 
+  async getCaseForManagement(
+    actorUserId: string,
+    caseId: string,
+  ): Promise<VerificationCaseEntity> {
+    return this.getAuthorizedCase(actorUserId, caseId, 'organization.manage');
+  }
+
   async createDocumentDownload(
     actorUserId: string,
     caseId: string,
@@ -273,6 +322,11 @@ export class VerificationService {
     });
     if (!document)
       throw new NotFoundException('Verification resource was not found');
+    if (document.scanStatus !== VerificationDocumentScanStatus.Passed) {
+      throw new ConflictException(
+        'Verification document is unavailable until malware scanning passes',
+      );
+    }
     return this.storage.createDownloadUrl({
       scope: this.documentScope(verificationCase),
       key: document.objectKey,

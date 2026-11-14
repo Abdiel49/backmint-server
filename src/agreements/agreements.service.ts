@@ -2,11 +2,16 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { type ConfigType } from '@nestjs/config';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { KeyType, PublicKey } from 'near-api-js';
 import { DataSource, EntityManager, IsNull } from 'typeorm';
+import { walletConfig } from '../config/configuration.js';
 import { ChainOperationEntity } from '../finance/chain-operation.entity.js';
 import { UserEntity } from '../identity/user.entity.js';
 import { OrganizationEntity } from '../organizations/organization.entity.js';
@@ -19,6 +24,9 @@ import {
 } from '../publications/application.entity.js';
 import { CallEntity } from '../publications/call.entity.js';
 import { ProjectEntity } from '../publications/project.entity.js';
+import { WalletLinkEntity } from '../identity/wallet-link.entity.js';
+import { encodeNep413Payload } from '../identity/wallet-link.service.js';
+import { AgreementAcceptanceChallengeEntity } from './agreement-acceptance-challenge.entity.js';
 import {
   AgreementEntity,
   AgreementFinanceConfirmationEntity,
@@ -46,7 +54,11 @@ export type AgreementVersionInput = {
 
 @Injectable()
 export class AgreementsService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    @Inject(walletConfig.KEY)
+    private readonly wallet: ConfigType<typeof walletConfig>,
+  ) {}
 
   async createFromAward(
     awardId: string,
@@ -127,14 +139,160 @@ export class AgreementsService {
     });
   }
 
+  async issueAcceptanceChallenge(
+    agreementId: string,
+    actorUserId: string,
+    expectedVersion: number,
+    expectedHash: string,
+    partyKey: string,
+  ) {
+    return this.dataSource.transaction(async (manager) => {
+      const agreement = await this.lockAgreement(manager, agreementId);
+      if (agreement.status !== AgreementStatus.PendingAcceptance)
+        throw new ConflictException('Agreement is not accepting signatures');
+      const version = await this.currentVersion(manager, agreement);
+      if (
+        expectedVersion !== agreement.currentVersion ||
+        expectedHash !== version.termsHash
+      )
+        throw new ConflictException(
+          'Acceptance references a stale agreement version or terms hash',
+        );
+      if (version.acceptanceExpiresAt.getTime() <= Date.now())
+        throw new ConflictException('Agreement acceptance deadline has passed');
+      const party = version.terms.parties.find((item) => item.key === partyKey);
+      if (!party)
+        throw new ForbiddenException('User is not an agreement party');
+      await this.assertPartyAuthority(manager, party, actorUserId, new Date());
+      const walletLink = await manager.findOne(WalletLinkEntity, {
+        where: {
+          userId: actorUserId,
+          network: this.wallet.network,
+          revokedAt: IsNull(),
+        },
+        order: { createdAt: 'DESC' },
+      });
+      if (!walletLink)
+        throw new ForbiddenException('An active linked NEAR wallet is required');
+      if (
+        version.terms.network !== this.wallet.network &&
+        version.terms.network !== `near:${this.wallet.network}`
+      )
+        throw new ConflictException(
+          'The linked wallet network does not match the agreement network',
+        );
+
+      const id = randomUUID();
+      const nonce = randomBytes(32);
+      const expiresAt = new Date(
+        Date.now() + this.wallet.challengeTtlSeconds * 1000,
+      );
+      const message = JSON.stringify({
+        type: 'backmint.agreement.acceptance',
+        challengeId: id,
+        agreementId,
+        version: expectedVersion,
+        termsHash: expectedHash,
+        partyKey,
+        userId: actorUserId,
+        walletLinkId: walletLink.id,
+        accountId: walletLink.accountId,
+        publicKey: walletLink.publicKey,
+        network: this.wallet.network,
+        agreementNetwork: version.terms.network,
+        recipient: this.wallet.challengeRecipient,
+        expiresAt: expiresAt.toISOString(),
+      });
+      await manager.getRepository(AgreementAcceptanceChallengeEntity).save({
+        id,
+        agreementId,
+        version: expectedVersion,
+        termsHash: expectedHash,
+        partyKey,
+        userId: actorUserId,
+        walletLinkId: walletLink.id,
+        accountId: walletLink.accountId,
+        publicKey: walletLink.publicKey,
+        network: this.wallet.network,
+        recipient: this.wallet.challengeRecipient,
+        nonceHash: createHash('sha256').update(nonce).digest('hex'),
+        message,
+        expiresAt,
+        usedAt: null,
+      });
+      return {
+        id,
+        message,
+        nonce: nonce.toString('base64'),
+        accountId: walletLink.accountId,
+        publicKey: walletLink.publicKey,
+        network: this.wallet.network,
+        recipient: this.wallet.challengeRecipient,
+        expiresAt,
+      };
+    });
+  }
+
   async accept(
     agreementId: string,
     actorUserId: string,
     expectedVersion: number,
     expectedHash: string,
     partyKey: string,
+    challengeId: string,
+    nonceBase64: string,
+    signatureBase64: string,
     now = new Date(),
   ): Promise<AgreementEntity> {
+    const challenge = await this.dataSource
+      .getRepository(AgreementAcceptanceChallengeEntity)
+      .findOneBy({ id: challengeId, agreementId, userId: actorUserId });
+    if (!challenge || challenge.usedAt || challenge.expiresAt <= now)
+      throw new UnauthorizedException(
+        'Agreement acceptance challenge is invalid or expired',
+      );
+    const nonce = Buffer.from(nonceBase64, 'base64');
+    if (
+      nonce.length !== 32 ||
+      nonce.toString('base64') !== nonceBase64 ||
+      createHash('sha256').update(nonce).digest('hex') !== challenge.nonceHash
+    )
+      throw new UnauthorizedException('Agreement acceptance nonce is invalid');
+    if (
+      challenge.version !== expectedVersion ||
+      challenge.termsHash !== expectedHash ||
+      challenge.partyKey !== partyKey ||
+      challenge.network !== this.wallet.network ||
+      challenge.recipient !== this.wallet.challengeRecipient
+    )
+      throw new UnauthorizedException(
+        'Agreement acceptance challenge does not match the request',
+      );
+    let publicKey: PublicKey;
+    const signature = Buffer.from(signatureBase64, 'base64');
+    try {
+      publicKey = PublicKey.fromString(challenge.publicKey);
+      if (
+        publicKey.keyType !== KeyType.ED25519 ||
+        signature.length !== 64 ||
+        signature.toString('base64') !== signatureBase64
+      )
+        throw new Error('Invalid NEP-413 signature encoding');
+    } catch {
+      throw new UnauthorizedException('Agreement acceptance signature is invalid');
+    }
+    const digest = createHash('sha256')
+      .update(
+        encodeNep413Payload(
+          challenge.message,
+          nonce,
+          challenge.recipient,
+        ),
+      )
+      .digest();
+    if (!publicKey.verify(digest, signature))
+      throw new UnauthorizedException('Agreement acceptance signature is invalid');
+
     return this.dataSource.transaction(async (manager) => {
       const agreement = await this.lockAgreement(manager, agreementId);
       if (agreement.status !== AgreementStatus.PendingAcceptance)
@@ -156,6 +314,34 @@ export class AgreementsService {
       const acceptanceRepository = manager.getRepository(
         AgreementPartyAcceptanceEntity,
       );
+      const activeWallet = await manager.findOne(WalletLinkEntity, {
+        where: {
+          id: challenge.walletLinkId,
+          userId: actorUserId,
+          accountId: challenge.accountId,
+          publicKey: challenge.publicKey,
+          network: challenge.network,
+          revokedAt: IsNull(),
+        },
+      });
+      if (!activeWallet)
+        throw new UnauthorizedException(
+          'The wallet linked to this challenge is no longer active',
+        );
+      const claimedChallenge = await manager
+        .createQueryBuilder()
+        .update(AgreementAcceptanceChallengeEntity)
+        .set({ usedAt: now })
+        .where(
+          'id = :id AND "agreementId" = :agreementId AND "userId" = :userId AND "usedAt" IS NULL AND "expiresAt" > :now',
+          { id: challenge.id, agreementId, userId: actorUserId, now },
+        )
+        .returning('id')
+        .execute();
+      if (claimedChallenge.affected !== 1)
+        throw new UnauthorizedException(
+          'Agreement acceptance challenge is invalid or expired',
+        );
       const existingAcceptance = await acceptanceRepository.findOne({
         where: { agreementId, version: expectedVersion, partyKey },
       });
@@ -179,6 +365,15 @@ export class AgreementsService {
           acceptedByUserId: actorUserId,
           acceptedTermsHash: expectedHash,
           acceptedAt: now,
+          acceptanceChallengeId: challenge.id,
+          walletLinkId: activeWallet.id,
+          signingAccountId: challenge.accountId,
+          signingPublicKey: challenge.publicKey,
+          signingNetwork: challenge.network,
+          signingRecipient: challenge.recipient,
+          signedMessage: challenge.message,
+          signingNonce: nonceBase64,
+          walletSignature: signatureBase64,
         }),
       );
       const requiredParties = version.terms.parties.filter(

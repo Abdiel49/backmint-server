@@ -142,6 +142,33 @@ export class AgreementPartyAcceptanceEntity {
 
   @Column({ type: 'timestamptz' })
   acceptedAt!: Date;
+
+  @Column({ type: 'uuid', nullable: true })
+  acceptanceChallengeId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  walletLinkId!: string | null;
+
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  signingAccountId!: string | null;
+
+  @Column({ type: 'varchar', length: 96, nullable: true })
+  signingPublicKey!: string | null;
+
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  signingNetwork!: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  signingRecipient!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  signedMessage!: string | null;
+
+  @Column({ type: 'varchar', length: 44, nullable: true })
+  signingNonce!: string | null;
+
+  @Column({ type: 'varchar', length: 88, nullable: true })
+  walletSignature!: string | null;
 }
 
 @Entity('agreement_finance_confirmations')

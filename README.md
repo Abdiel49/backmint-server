@@ -44,6 +44,29 @@ The API reads runtime settings through NestJS `ConfigModule`. Configure S3-compa
 
 Credentialed CORS requests are limited to `CORS_ORIGINS`. Set `TRUSTED_PROXY_HOPS` only to the number of trusted reverse proxies in front of the service; it defaults to `0`. Each HTTP request receives a validated `X-Request-Id` or a generated UUID, returned in the response and included in structured request logs. Nest shutdown hooks close application providers during termination.
 
+## OpenAPI and TypeScript client
+
+The generated contract is checked in at `docs/openapi.json`, and `src/generated/backmint-api.d.ts` contains its TypeScript path and schema types. Regenerate both from the configured Nest application with:
+
+```bash
+pnpm openapi:generate
+pnpm openapi:types
+```
+
+Generation initializes the application, so PostgreSQL, Redis and the required environment variables must be available. CI regenerates the files and fails if the committed contract is stale. The typed fetch client is exported from `src/generated/backmint-client.ts`:
+
+```ts
+import { createBackmintClient } from './generated/backmint-client.js';
+
+const client = createBackmintClient('https://api.example.com', {
+  bearerToken: 'session-token',
+});
+
+const { data, error } = await client.GET('/api/health');
+```
+
+Pass the server origin as `baseUrl`; generated paths already include the `/api` prefix.
+
 ## Database migrations
 
 Application startup never synchronizes the schema or runs pending migrations. Apply schema changes explicitly:
