@@ -7,7 +7,7 @@ import {
 import { type ConfigType } from '@nestjs/config';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { KeyType, PublicKey } from 'near-api-js';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import { walletConfig } from '../config/configuration.js';
 import { NearRpcService } from '../infrastructure/near/near-rpc.service.js';
 import { WalletChallengeEntity } from './wallet-challenge.entity.js';
@@ -20,6 +20,7 @@ export type WalletChallenge = {
   message: string;
   nonce: string;
   recipient: string;
+  network: string;
   expiresAt: Date;
 };
 
@@ -70,6 +71,7 @@ export class WalletLinkService {
       message,
       nonce,
       recipient: this.wallet.challengeRecipient,
+      network: this.wallet.network,
       expiresAt,
     };
   }
@@ -91,10 +93,7 @@ export class WalletLinkService {
     try {
       publicKey = PublicKey.fromString(input.publicKey);
       signature = Buffer.from(input.signature, 'base64');
-      if (
-        publicKey.keyType !== KeyType.ED25519 ||
-        signature.length !== 64
-      ) {
+      if (publicKey.keyType !== KeyType.ED25519 || signature.length !== 64) {
         throw new Error('Invalid NEP-413 signature encoding');
       }
     } catch {
@@ -120,8 +119,15 @@ export class WalletLinkService {
     if (!publicKey.verify(digest, signature)) {
       throw new UnauthorizedException('Wallet signature is invalid');
     }
-    if (!(await this.nearRpc.hasAccessKey(challenge.accountId, input.publicKey))) {
-      throw new UnauthorizedException('Signing key is not authorized for account');
+    if (
+      !(await this.nearRpc.hasFullAccessKey(
+        challenge.accountId,
+        input.publicKey,
+      ))
+    ) {
+      throw new UnauthorizedException(
+        'Signing key does not have full account access',
+      );
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -129,30 +135,39 @@ export class WalletLinkService {
         .createQueryBuilder()
         .update(WalletChallengeEntity)
         .set({ usedAt: new Date() })
-        .where('id = :id AND "userId" = :userId AND "usedAt" IS NULL AND "expiresAt" > NOW()', {
-          id: challenge.id,
-          userId,
-        })
+        .where(
+          'id = :id AND "userId" = :userId AND "usedAt" IS NULL AND "expiresAt" > NOW()',
+          {
+            id: challenge.id,
+            userId,
+          },
+        )
         .returning('id')
         .execute();
 
       if (claimed.affected !== 1) {
-        throw new UnauthorizedException('Wallet challenge is invalid or expired');
+        throw new UnauthorizedException(
+          'Wallet challenge is invalid or expired',
+        );
       }
 
       try {
         const link = manager.create(WalletLinkEntity, {
           userId,
           accountId: challenge.accountId,
+          network: this.wallet.network,
           publicKey: input.publicKey,
           verifiedAt: new Date(),
           revokedAt: null,
         });
         return await manager.save(link);
       } catch (error) {
-        throw new ConflictException('NEAR account already has an active wallet link', {
-          cause: error,
-        });
+        throw new ConflictException(
+          'NEAR account already has an active wallet link',
+          {
+            cause: error,
+          },
+        );
       }
     });
   }
@@ -163,15 +178,25 @@ export class WalletLinkService {
       .createQueryBuilder()
       .update(WalletLinkEntity)
       .set({ revokedAt: new Date() })
-      .where('id = :walletLinkId AND "userId" = :userId AND "revokedAt" IS NULL', {
-        walletLinkId,
-        userId,
-      })
+      .where(
+        'id = :walletLinkId AND "userId" = :userId AND "revokedAt" IS NULL',
+        {
+          walletLinkId,
+          userId,
+        },
+      )
       .execute();
 
     if (result.affected !== 1) {
       throw new ConflictException('Active wallet link was not found');
     }
+  }
+
+  async listActiveLinks(userId: string): Promise<WalletLinkEntity[]> {
+    return this.dataSource.getRepository(WalletLinkEntity).find({
+      where: { userId, revokedAt: IsNull() },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   private isValidAccountId(accountId: string): boolean {

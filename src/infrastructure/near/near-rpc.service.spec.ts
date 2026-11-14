@@ -74,17 +74,36 @@ describe('NearRpcService', () => {
     });
   });
 
-  it('checks a public key against the account access key list', async () => {
+  it('accepts only full-access keys from the account access key list', async () => {
     const { provider, service } = createService();
     provider.viewAccessKeyList.mockResolvedValue({
-      keys: [{ public_key: { toString: () => 'ed25519:authorized' } }],
+      keys: [
+        {
+          public_key: { toString: () => 'ed25519:authorized' },
+          access_key: { permission: 'FullAccess' },
+        },
+        {
+          public_key: { toString: () => 'ed25519:function-call' },
+          access_key: {
+            permission: {
+              FunctionCall: {
+                receiver_id: 'contract.testnet',
+                method_names: [],
+              },
+            },
+          },
+        },
+      ],
     });
 
     await expect(
-      service.hasAccessKey('alice.testnet', 'ed25519:authorized'),
+      service.hasFullAccessKey('alice.testnet', 'ed25519:authorized'),
     ).resolves.toBe(true);
     await expect(
-      service.hasAccessKey('alice.testnet', 'ed25519:other'),
+      service.hasFullAccessKey('alice.testnet', 'ed25519:other'),
+    ).resolves.toBe(false);
+    await expect(
+      service.hasFullAccessKey('alice.testnet', 'ed25519:function-call'),
     ).resolves.toBe(false);
   });
 
