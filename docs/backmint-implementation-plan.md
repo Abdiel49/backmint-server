@@ -237,12 +237,13 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 8 — Milestones, private evidence and release workflow
 
-- [ ] Implement `Milestone` with sequence, acceptance criteria, base-unit amount, due date, reviewer, status and on-chain milestone ID.
+- [~] Implement `Milestone` persistence and the versioned domain lifecycle with sequence, acceptance criteria, base-unit amount, due date, reviewer, status and on-chain milestone ID.
   - Done when: milestone allocations cannot exceed agreement amount and sequence/authority is validated.
   - Failure: FAILED — <UTC timestamp> — milestone schedule invalid — contract/payment mismatch risk — <owner> — reject agreement version and repair allocation.
-- [ ] Implement `EvidenceSubmission` versioning and `EvidenceAsset` metadata: storage key, checksum, MIME type, visibility and scan status.
+- [~] Implement `EvidenceSubmission` versioning and `EvidenceAsset` metadata: storage key, checksum, MIME type, visibility and scan status.
   - Done when: evidence is private by default, content type/size/checksum are enforced and every replacement is versioned.
   - Failure: FAILED — <UTC timestamp> — evidence is public, unscanned or overwritten — privacy/malware/audit risk — <owner> — quarantine asset, revoke URLs and repair workflow.
+- Evidence: Phase 8 foundation persists milestone schedules as append-only terms versions, enforces consecutive versions and Award allocation caps in PostgreSQL, and stores evidence submission versions with private-by-default asset references, checksums, MIME types, positive sizes, and Pending scan state. Domain and PostgreSQL coverage verifies immutable metadata and keeps approval distinct from payment. Agreement PR #46 is not merged in `develop`; this slice references the stable Award allocation and terms snapshot only and does not depend on Agreement tables. Validation against an Agreement amount, reviewer authority, upload authorization, object existence/checksum verification, malware scanning, access policy, reviewer workflow, chain approval and release orchestration remain pending. Evidence metadata does not prove a file was uploaded, scanned, reviewed, approved, or paid.
 - [ ] Implement signed upload flow, malware scan/quarantine job, failure notification and reviewer access controls.
   - Done when: only scan-passed assets can be submitted for review; upload URLs are scoped and short-lived.
   - Failure: FAILED — <UTC timestamp> — unsafe asset reaches reviewer or URL scope leaks — security incident — <owner> — quarantine, revoke and audit downloads.
