@@ -6,7 +6,7 @@ import {
   WalletLinkService,
 } from './wallet-link.service.js';
 
-function createWalletService() {
+function createWalletService(claimAffected = 1) {
   const nonce = Buffer.alloc(32, 7);
   const challenge = {
     id: 'challenge-id',
@@ -31,7 +31,7 @@ function createWalletService() {
         set: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         returning: vi.fn().mockReturnThis(),
-        execute: vi.fn(async () => ({ affected: 1 })),
+        execute: vi.fn(async () => ({ affected: claimAffected })),
       };
       const manager = {
         createQueryBuilder: vi.fn(() => queryBuilder),
@@ -130,5 +130,23 @@ describe('encodeNep413Payload', () => {
         signature: Buffer.alloc(64).toString('base64'),
       }),
     ).rejects.toThrow('Wallet signature is invalid');
+  });
+
+  it('rejects a challenge that another request has already claimed', async () => {
+    const { service, challenge, nonce } = createWalletService(0);
+    const keyPair = KeyPairEd25519.fromRandom();
+    const digest = createHash('sha256')
+      .update(encodeNep413Payload(challenge.message, nonce, 'backmint-server'))
+      .digest();
+    const signature = keyPair.sign(digest).signature;
+
+    await expect(
+      service.verifyAndLink('user-id', {
+        challengeId: challenge.id,
+        nonce: nonce.toString('base64'),
+        publicKey: keyPair.publicKey.toString(),
+        signature: Buffer.from(signature).toString('base64'),
+      }),
+    ).rejects.toThrow('Wallet challenge is invalid or expired');
   });
 });
