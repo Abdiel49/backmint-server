@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { ApplicationEntity, FundingOfferEntity } from './application.entity.js';
+import { ApplicationAnswerEntity, ApplicationEntity, FundingOfferEntity } from './application.entity.js';
 import { AwardEntity } from './award.entity.js';
 import { CallEntity } from './call.entity.js';
 import { ProjectEntity } from './project.entity.js';
@@ -81,6 +81,11 @@ export class AwardsService {
         throw new BadRequestException(
           'Award asset must match the source asset',
         );
+      const answers = await manager.getRepository(ApplicationAnswerEntity).find({
+        where: { applicationId: application.id },
+      });
+      if (answers.some((answer) => answer.fileScanStatus !== 'NotRequired' || !Array.isArray(answer.attachmentIds) || answer.attachmentIds.length > 0))
+        throw new ConflictException('Application attachments require verified scanning before an Award');
       if (application.applicantOrganizationId) {
         const organization = await manager.getRepository(OrganizationEntity).findOne({
           where: { id: application.applicantOrganizationId, status: 'Active' },

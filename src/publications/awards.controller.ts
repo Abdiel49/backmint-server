@@ -61,12 +61,6 @@ const awardResponseExample = {
   },
 };
 
-const awardConflictExample = {
-  statusCode: 409,
-  message: 'Application must be selected for award',
-  error: 'Conflict',
-};
-
 @ApiTags('Awards')
 @ApiBearerAuth()
 @UseGuards(AuthSessionGuard)
@@ -178,7 +172,7 @@ export class AwardsController {
   @ApiOperation({
     summary: 'Create an Award from a selected Application',
     description:
-      'The authenticated publisher must own the source. The Application must be Selected. The applicant organization must still be active and satisfy the submitted source version’s audience and jurisdiction rules. Creating this Award reserves source capacity but does not represent a deposit or payment.',
+      'The authenticated publisher must own the source. The Application must be Selected. The applicant organization must still be active and satisfy the submitted source version’s audience and jurisdiction rules. Applications with attachments cannot receive an Award until verified scanning is supported. Creating an Award reserves capacity but does not represent a deposit or payment.',
   })
   @ApiBody({
     type: CreateAwardFromApplicationDto,
@@ -239,8 +233,8 @@ export class AwardsController {
   })
   @ApiConflictResponse({
     description:
-      'The caller does not own the source, the Application is not selected, or reservation capacity is exhausted.',
-    schema: { example: awardConflictExample },
+      'The caller does not own the source, attachments require verified scanning, or reservation capacity is exhausted.',
+    schema: { example: { statusCode: 409, message: 'Application attachments require verified scanning before an Award', error: 'Conflict' } },
   })
   async createFromApplication(
     @Param('applicationId', ParseUUIDPipe) applicationId: string,
