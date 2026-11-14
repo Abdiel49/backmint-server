@@ -3,6 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { IdentityProviderEntity } from './identity-provider.entity.js';
 import { IdentityService } from './identity.service.js';
 import { UserEntity } from './user.entity.js';
+import { AuthSessionEntity } from './auth-session.entity.js';
+import { AuthSessionGuard } from './auth-session.guard.js';
+import { AuthSessionService } from './auth-session.service.js';
 import { WalletChallengeEntity } from './wallet-challenge.entity.js';
 import { WalletLinkEntity } from './wallet-link.entity.js';
 import { WalletLinkService } from './wallet-link.service.js';
@@ -13,6 +16,7 @@ import { NearModule } from '../infrastructure/near/near.module.js';
     TypeOrmModule.forFeature([
       UserEntity,
       IdentityProviderEntity,
+      AuthSessionEntity,
       WalletChallengeEntity,
       WalletLinkEntity,
     ]),
