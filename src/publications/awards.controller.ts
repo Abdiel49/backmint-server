@@ -17,6 +17,7 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -177,7 +178,7 @@ export class AwardsController {
   @ApiOperation({
     summary: 'Create an Award from a selected Application',
     description:
-      'The authenticated publisher must own the source. The Application must be Selected. Creating this Award reserves source capacity but does not represent a deposit or payment.',
+      'The authenticated publisher must own the source. The Application must be Selected. The applicant organization must still be active and satisfy the submitted source version’s audience and jurisdiction rules. Creating this Award reserves source capacity but does not represent a deposit or payment.',
   })
   @ApiBody({
     type: CreateAwardFromApplicationDto,
@@ -221,6 +222,10 @@ export class AwardsController {
         error: 'Unauthorized',
       },
     },
+  })
+  @ApiForbiddenResponse({
+    description: 'The applicant organization is unavailable or no longer satisfies its submitted eligibility policy.',
+    schema: { example: { statusCode: 403, message: 'Applicant does not meet the publication audience requirements', error: 'Forbidden' } },
   })
   @ApiNotFoundResponse({
     description: 'The Application or its source was not found.',
