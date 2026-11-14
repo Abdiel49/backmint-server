@@ -4873,7 +4873,7 @@
     },
     "/api/applications/attachments/{attachmentId}/complete": {
       "post": {
-        "description": "Checks object size and SHA-256 checksum and queues malware scanning. The attachment remains unavailable for review until further integration.",
+        "description": "Checks object size and SHA-256 checksum and queues malware scanning. Reviewers can access the attachment only after it passes scanning and is linked to an eligible Application.",
         "operationId": "ApplicationAttachmentController_completeUpload",
         "parameters": [
           {
@@ -4992,6 +4992,115 @@
           }
         ],
         "summary": "Confirm a private Application attachment upload",
+        "tags": [
+          "Applications"
+        ]
+      }
+    },
+    "/api/applications/attachments/{applicationId}/{attachmentId}/download": {
+      "get": {
+        "description": "Only an active authorized reviewer with a conflict-cleared assignment in an open evaluation round may download a linked clean attachment.",
+        "operationId": "ApplicationAttachmentController_createReviewerDownload",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "71d94885-9e19-4827-bdbb-3de3d5333e3b",
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "4e38df44-63d1-467a-90d4-bde6bce3e6db",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Short-lived private download URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "attachmentId": "4e38df44-63d1-467a-90d4-bde6bce3e6db",
+                    "url": "https://objects.example.test/backmint/applications/uploads/file?signature=example",
+                    "expiresAt": "2027-01-15T18:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An identifier is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Validation failed (uuid is expected)",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Attachment is unavailable to this reviewer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Application attachment was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Private object storage is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 503,
+                    "message": "Private object storage is unavailable for attachment download",
+                    "error": "Service Unavailable"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a private Application attachment download URL for an assigned reviewer",
         "tags": [
           "Applications"
         ]

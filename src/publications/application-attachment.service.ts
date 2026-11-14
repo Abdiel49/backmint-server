@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { DataSource, IsNull } from 'typeorm';
+import { DataSource, In, IsNull } from 'typeorm';
 import { malwareScanConfig } from '../config/configuration.js';
 import { ObjectStorageService } from '../infrastructure/object-storage/object-storage.service.js';
 import { AsyncQueueName } from '../infrastructure/async-queues/async-queues.constants.js';
@@ -9,6 +9,10 @@ import { OrganizationEntity } from '../organizations/organization.entity.js';
 import { OrganizationMembershipEntity } from '../organizations/organization-membership.entity.js';
 import { OrganizationRepresentativeEntity } from '../organizations/organization-representative.entity.js';
 import { ApplicationAttachmentEntity } from './application-attachment.entity.js';
+import { ApplicationAnswerEntity, ApplicationEntity } from './application.entity.js';
+import { EvaluationAssignmentEntity, EvaluationRoundEntity } from '../evaluations/evaluation.entity.js';
+import { ProjectEntity } from './project.entity.js';
+import { CallEntity } from './call.entity.js';
 
 @Injectable()
 export class ApplicationAttachmentService {
@@ -81,5 +85,33 @@ export class ApplicationAttachmentService {
       }
     }
     return result;
+  }
+
+  async createReviewerDownload(actorUserId: string, applicationId: string, attachmentId: string) {
+    const unavailable = () => new NotFoundException('Application attachment was not found');
+    const application = await this.dataSource.getRepository(ApplicationEntity).findOneBy({ id: applicationId });
+    if (!application || !['Submitted', 'UnderReview', 'NeedsInformation', 'Shortlisted', 'Selected', 'Awarded'].includes(application.status)) throw unavailable();
+    const attachment = await this.dataSource.getRepository(ApplicationAttachmentEntity).findOneBy({ id: attachmentId, applicationId, status: 'Clean' });
+    if (!attachment) throw unavailable();
+    const answers = await this.dataSource.getRepository(ApplicationAnswerEntity).find({ where: { applicationId, fileScanStatus: 'Passed' } });
+    if (!answers.some((answer) => Array.isArray(answer.attachmentIds) && answer.attachmentIds.some((id) => id.toLowerCase() === attachment.id))) throw unavailable();
+    const assignments = await this.dataSource.getRepository(EvaluationAssignmentEntity).find({ where: { applicationId, evaluatorUserId: actorUserId, conflictStatus: 'NoConflict', status: In(['InProgress', 'Submitted']) } });
+    if (!assignments.length) throw unavailable();
+    const rounds = await this.dataSource.getRepository(EvaluationRoundEntity).find({ where: { id: In(assignments.map((assignment) => assignment.roundId)), sourceType: application.sourceType, sourceId: application.sourceId, status: 'Open' } });
+    if (!rounds.length || !['Project', 'Call'].includes(application.sourceType)) throw unavailable();
+    const source = application.sourceType === 'Project'
+      ? await this.dataSource.getRepository(ProjectEntity).findOneBy({ id: application.sourceId })
+      : await this.dataSource.getRepository(CallEntity).findOneBy({ id: application.sourceId });
+    if (!source?.ownerOrganizationId) throw unavailable();
+    const organization = await this.dataSource.getRepository(OrganizationEntity).findOneBy({ id: source.ownerOrganizationId, status: 'Active' });
+    const membership = await this.dataSource.getRepository(OrganizationMembershipEntity).findOneBy({ organizationId: source.ownerOrganizationId, userId: actorUserId, status: 'Active' });
+    if (!organization || !membership || !['Owner', 'Admin', 'Evaluator'].includes(membership.role)) throw unavailable();
+    const scope = `applications/uploads/${attachment.organizationId ?? attachment.uploadedByUserId}/${attachment.uploadedByUserId}`;
+    try {
+      const signed = await this.storage.createDownloadUrl({ scope, key: attachment.storageKey });
+      return { attachmentId: attachment.id, url: signed.url, expiresAt: signed.expiresAt };
+    } catch {
+      throw new ServiceUnavailableException('Private object storage is unavailable for attachment download');
+    }
   }
 }
