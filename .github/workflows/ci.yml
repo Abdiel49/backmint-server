@@ -33,6 +33,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      RUN_POSTGRES_INTEGRATION: 'true'
       NODE_ENV: test
       RUN_POSTGRES_INTEGRATION: 'true'
       PORT: 3001
