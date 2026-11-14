@@ -25,6 +25,7 @@ import {
 import { EvaluationsService } from '../evaluations/evaluations.service.js';
 import { AwardEntity } from './award.entity.js';
 import { AwardsService } from './awards.service.js';
+import { AwardsController } from './awards.controller.js';
 import { PublicationManagementController } from './publication-management.controller.js';
 import { PublicationManagementService } from './publication-management.service.js';
 import { EvaluationsController } from '../evaluations/evaluations.controller.js';
@@ -55,7 +56,12 @@ import { AuditPersistenceModule } from '../audit/audit-persistence.module.js';
       AwardEntity,
     ]),
   ],
-  controllers: [OpportunityController, EvaluationsController, PublicationManagementController],
+  controllers: [
+    OpportunityController,
+    EvaluationsController,
+    PublicationManagementController,
+    AwardsController,
+  ],
   providers: [
     PublicationService,
     OpportunityService,
