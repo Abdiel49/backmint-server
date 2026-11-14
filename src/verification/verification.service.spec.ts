@@ -4,6 +4,10 @@ import {
   VerificationCaseEntity,
   VerificationStatus,
 } from './verification-case.entity.js';
+import {
+  VerificationDocumentEntity,
+  VerificationDocumentScanStatus,
+} from './verification-document.entity.js';
 import { VerificationService } from './verification.service.js';
 
 function createHarness() {
@@ -31,6 +35,9 @@ function createHarness() {
   };
   const documentRepository = {
     existsBy: vi.fn(async () => true),
+    findBy: vi.fn(async () => [
+      { scanStatus: VerificationDocumentScanStatus.Passed },
+    ]),
     findOneBy: vi.fn(),
     save: vi.fn(async (value) => value),
     create: vi.fn((value) => value),
@@ -51,7 +58,9 @@ function createHarness() {
     getRepository: vi.fn((entity) =>
       entity === VerificationCaseEntity
         ? lockedCaseRepository
-        : transactionalReviewRepository,
+        : entity === VerificationDocumentEntity
+          ? documentRepository
+          : transactionalReviewRepository,
     ),
   };
   const transaction = vi.fn(async (callback) => callback(manager));
@@ -78,6 +87,11 @@ function createHarness() {
       url: 'signed-download',
       expiresAt: new Date(),
     })),
+    headObject: vi.fn(async () => ({
+      contentLength: 2048,
+      checksumSha256: 'ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=',
+      metadataChecksumSha256: 'ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=',
+    })),
   };
   const service = new VerificationService(
     caseRepository as never,
@@ -102,7 +116,7 @@ function createHarness() {
 }
 
 describe('VerificationService', () => {
-  it('submits a case only when evidence metadata exists', async () => {
+  it('submits a case only when every evidence document passed malware scanning', async () => {
     const harness = createHarness();
     harness.verificationCase.status = VerificationStatus.NotStarted;
     await expect(
@@ -111,10 +125,27 @@ describe('VerificationService', () => {
       status: VerificationStatus.Pending,
     });
     harness.verificationCase.status = VerificationStatus.NeedsInfo;
-    harness.documentRepository.existsBy.mockResolvedValue(false);
+    harness.documentRepository.findBy.mockResolvedValue([
+      { scanStatus: VerificationDocumentScanStatus.Queued },
+    ] as never);
     await expect(
       harness.service.submit('owner-1', 'case-1'),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('does not issue a download URL before malware scanning passes', async () => {
+    const harness = createHarness();
+    harness.verificationCase.status = VerificationStatus.Pending;
+    harness.documentRepository.findOneBy.mockResolvedValue({
+      id: 'document-1',
+      verificationCaseId: 'case-1',
+      objectKey: 'verification/org-1/case-1/object-1',
+      scanStatus: VerificationDocumentScanStatus.Infected,
+    });
+    await expect(
+      harness.service.createDocumentDownload('owner-1', 'case-1', 'document-1'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(harness.storage.createDownloadUrl).not.toHaveBeenCalled();
   });
 
   it('records reviewer decisions and verification expiry', async () => {
