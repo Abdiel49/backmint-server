@@ -191,17 +191,21 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 6 — Agreements and terms acceptance
 
-- [ ] Implement `Agreement`, versioned terms, party roles, asset/network, milestones, verification authority, deadlines, cancellation/dispute/refund policy and legal terms.
+- [~] Implement `Agreement`, versioned terms, party roles, asset/network, milestones, verification authority, deadlines, cancellation/dispute/refund policy and legal terms.
   - Done when: one Award maps to zero or one Agreement in V1 and agreement versions are immutable.
+  - Evidence: `feature/agreement-terms` adds a unique Award-to-Agreement aggregate, immutable version rows and an immutable version snapshot covering all specified terms. PostgreSQL integration tests cover one-to-one mapping and database-enforced version immutability. Remaining: agreement creation/management HTTP API and integration with award decisions.
   - Failure: FAILED — <UTC timestamp> — agreement terms are ambiguous/mutable or award has multiple active agreements — legal/financial integrity risk — <owner> — lock records and repair mapping.
-- [ ] Generate canonical on-chain economic terms hash with domain separation/nonce policy and persist contract artifact/version reference.
+- [~] Generate canonical on-chain economic terms hash with domain separation/nonce policy and persist contract artifact/version reference.
   - Done when: hash can be reproduced from the exact accepted terms and differs for stale/amended versions.
+  - Evidence: `feature/agreement-terms` produces stable SHA-256 hashes from canonical code-unit-key-sorted economic terms, network, asset, a domain tag and unique per-version nonce; it separately hashes the full version for party acceptance and pins a contract artifact reference. Known amount/budget/deposit/price/fee/cap/target/refund fields (including supported unit suffixes) accept only canonical non-negative integer base-unit strings; allocation fields and milestone allocations must be positive, and summed milestone allocations cannot exceed the accepted Award allocation on creation or amendment. Remaining: standardize names for any future monetary fields, align the artifact reference and hash encoding with the deployed contract ABI before chain registration.
   - Failure: FAILED — <UTC timestamp> — terms hash mismatch — chain/legal agreement divergence — <owner> — stop chain registration and regenerate verified terms.
-- [ ] Implement `AgreementPartyAcceptance` with representative authorization, exact version/hash signature, expiry and stale-version rejection.
+- [~] Implement `AgreementPartyAcceptance` with representative authorization, exact version/hash signature, expiry and stale-version rejection.
   - Done when: all required parties accepted the same hash before agreement reaches `Accepted`.
+  - Evidence: `feature/agreement-terms` persists immutable acceptance records bound to full terms hash and version; verifies current version, deadline, active direct-user identity, and active verified representative authority for organizational parties. Organization owners have no bypass, and no demo/informal bypass is defined. It binds the Funder to the Application source owner or FundingOffer author, and the Recipient to the applicant or FundingRequested source owner, checking Award/submission/source links. It advances only after all required parties accept. Unit/PostgreSQL tests cover source counterparty binding, hash/version/auth rejection, representative expiry and completion. CI enables PostgreSQL integration suites. Remaining: signature capture/cryptographic verification and acceptance HTTP endpoints.
   - Failure: FAILED — <UTC timestamp> — unauthorized or stale acceptance accepted — invalid consent — <owner> — invalidate acceptance and require re-signing.
-- [ ] Implement Agreement state machine: `Draft`, `PendingAcceptance`, `Accepted`, `AwaitingFunding`, `PartiallyFunded`, `Funded`, `Active`, `Completed`, `Cancelled`, `Disputed`, `Expired`.
+- [~] Implement Agreement state machine: `Draft`, `PendingAcceptance`, `Accepted`, `AwaitingFunding`, `PartiallyFunded`, `Funded`, `Active`, `Completed`, `Cancelled`, `Disputed`, `Expired`.
   - Done when: transition permissions and chain-confirmed financial overrides are unit/integration tested.
+  - Evidence: `feature/agreement-terms` adds the explicit transition graph; acceptance and expiry use dedicated guarded operations, and funded/partially funded transitions require a persisted `Confirmed` ChainOperation matching agreement, network and economic terms hash. Active requires a persisted Funded confirmation. The chain-confirmed transition path is deliberately service-only pending finance HTTP APIs. PostgreSQL tests cover illegal bypass and the confirmed path. Remaining: finance journal/deposit reconciliation, authenticated finance APIs and role-specific transition authorization.
   - Failure: FAILED — <UTC timestamp> — illegal agreement transition — financial/legal workflow breach — <owner> — halt affected workflow and repair transition guard.
 
 ## Phase 7 — NEAR finance, escrow and reconciliation
