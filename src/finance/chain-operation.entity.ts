@@ -63,6 +63,9 @@ export class ChainOperationEntity {
   @Column({ type: 'varchar', length: 128, nullable: true })
   transactionHash!: string | null;
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  signerAccountId!: string | null;
+
   @Column({ type: 'varchar', length: 128, nullable: true })
   errorCode!: string | null;
 
