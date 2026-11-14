@@ -11,7 +11,12 @@ const environmentSchema = z.object({
   RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
-  SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(2_592_000).default(604_800),
+  SESSION_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(300)
+    .max(2_592_000)
+    .default(604_800),
   UPLOAD_RATE_LIMIT_MAX_REQUESTS: z.coerce
     .number()
     .int()
@@ -218,6 +223,7 @@ export const walletConfig = registerAs('wallet', () => {
   return {
     challengeRecipient: environment.WALLET_CHALLENGE_RECIPIENT,
     challengeTtlSeconds: 300,
+    network: environment.NEAR_NETWORK,
   };
 });
 
