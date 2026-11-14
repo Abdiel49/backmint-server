@@ -102,7 +102,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
   - Failure: FAILED — <UTC timestamp> — non-representative can bind an organization — legal authority risk — <owner> — block acceptance and audit prior actions.
 - [x] Implement private verification document uploads, `VerificationCase`, reviewer workflow, expiry and revocation.
   - Done when: verification transitions support `NotStarted`, `Pending`, `NeedsInfo`, `Verified`, `Rejected`, `Expired` and `Revoked` without leaking sensitive denial signals.
-  - Evidence: `feature/verification-workflow`; authenticated service operations, scoped private object storage references, reviewer decision history, self-review prevention, hourly expiry and role/resource access tests.
+  - Evidence: `feature/verification-workflow` at `6857c01` and `45840fd`; [PR #31](https://github.com/Abdiel49/backmint-server/pull/31). Authenticated service operations, scoped private object storage references, reviewer decision history, self-review prevention, hourly expiry and role/resource access tests.
   - Limitation: no HTTP endpoints are exposed yet; object storage upload completion/scanning is not verified by the current storage adapter.
   - Failure: FAILED — <UTC timestamp> — verification evidence/status is exposed or transition invalid — privacy/compliance risk — <owner> — restrict access and repair workflow.
 - [ ] Implement authentication and authorization packages with JWT/session guards, CSRF protection for cookie flows, RBAC plus resource-level ABAC.
