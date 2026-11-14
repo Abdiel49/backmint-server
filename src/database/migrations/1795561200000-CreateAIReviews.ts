@@ -1,6 +1,6 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateAIReviews1795388400000 implements MigrationInterface {
+export class CreateAIReviews1795561200000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE "ai_review_consents" (
@@ -32,7 +32,7 @@ export class CreateAIReviews1795388400000 implements MigrationInterface {
         "advisoryOutput" jsonb NOT NULL CHECK (
           jsonb_typeof("advisoryOutput") = 'object'
           AND "advisoryOutput" ?& ARRAY['summary', 'observations']
-          AND jsonb_object_length("advisoryOutput") = 2
+          AND "advisoryOutput" - 'summary' - 'observations' = '{}'::jsonb
           AND jsonb_typeof("advisoryOutput"->'summary') = 'string'
           AND jsonb_typeof("advisoryOutput"->'observations') = 'array'
         ),

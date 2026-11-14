@@ -7,11 +7,14 @@ import {
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, IsNull, Repository } from 'typeorm';
-import { ApplicationEntity } from '../publications/application.entity.js';
+import {
+  ApplicationAnswerEntity,
+  ApplicationEntity,
+} from '../publications/application.entity.js';
 import { AIReviewConsentEntity } from './ai-review-consent.entity.js';
 import {
   aiReviewAdvisoryOutputSchema,
-  aiReviewSourceReferenceSchema,
+  recordAIReviewInputSchema,
 } from './ai-review.dto.js';
 import {
   AIReviewEntity,
@@ -21,6 +24,20 @@ import {
 
 const consentPolicyVersion = 'ai-review-v1';
 const defaultRetentionDays = 90;
+
+function hasFieldPath(value: unknown, fieldPath: string): boolean {
+  let current: unknown = value;
+  for (const segment of fieldPath.split('.')) {
+    if (
+      typeof current !== 'object' ||
+      current === null ||
+      !Object.prototype.hasOwnProperty.call(current, segment)
+    )
+      return false;
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return true;
+}
 
 export type RecordAIReviewInput = Readonly<{
   applicationId: string;
@@ -39,6 +56,8 @@ export class AIReviewService {
     private readonly dataSource: DataSource,
     @InjectRepository(ApplicationEntity)
     private readonly applications: Repository<ApplicationEntity>,
+    @InjectRepository(ApplicationAnswerEntity)
+    private readonly answers: Repository<ApplicationAnswerEntity>,
     @InjectRepository(AIReviewConsentEntity)
     private readonly consents: Repository<AIReviewConsentEntity>,
     @InjectRepository(AIReviewEntity)
@@ -50,6 +69,14 @@ export class AIReviewService {
     userId: string,
     retentionDays = defaultRetentionDays,
   ) {
+    if (
+      !Number.isInteger(retentionDays) ||
+      retentionDays < 1 ||
+      retentionDays > 365
+    )
+      throw new BadRequestException(
+        'AI review retention must be between 1 and 365 days',
+      );
     const application = await this.applications.findOne({
       where: { id: applicationId },
     });
@@ -133,12 +160,7 @@ export class AIReviewService {
   async recordAdvisoryOutput(
     input: RecordAIReviewInput,
   ): Promise<AIReviewEntity> {
-    if (
-      input.citedSources.length === 0 ||
-      input.citedSources.some(
-        (source) => !aiReviewSourceReferenceSchema.safeParse(source).success,
-      )
-    ) {
+    if (!Array.isArray(input.citedSources) || input.citedSources.length === 0) {
       throw new ForbiddenException(
         'AI review output must cite at least one source',
       );
@@ -146,6 +168,57 @@ export class AIReviewService {
     if (!aiReviewAdvisoryOutputSchema.safeParse(input.advisoryOutput).success) {
       throw new BadRequestException(
         'AI review output must contain advisory summary and observations only',
+      );
+    }
+    if (!recordAIReviewInputSchema.safeParse(input).success) {
+      throw new BadRequestException(
+        'AI review provenance, citations, and uncertainty flags are invalid',
+      );
+    }
+    const application = await this.applications.findOne({
+      where: { id: input.applicationId },
+    });
+    if (!application) throw new NotFoundException('Application was not found');
+    const answers = await this.answers.find({
+      where: { applicationId: application.id },
+    });
+    const citationsMatchApplication = input.citedSources.every((source) => {
+      if (source.sourceType === 'Application')
+        return (
+          source.sourceId === application.id &&
+          hasFieldPath(application, source.fieldPath)
+        );
+      if (source.sourceType === 'Source')
+        return (
+          source.sourceId === application.sourceId &&
+          hasFieldPath(application.sourceSnapshot, source.fieldPath)
+        );
+      if (source.sourceType === 'Applicant')
+        return (
+          (source.sourceId === application.applicantUserId ||
+            source.sourceId === application.applicantOrganizationId) &&
+          hasFieldPath(application.applicantSnapshot, source.fieldPath)
+        );
+      if (source.sourceType === 'Proposal')
+        return (
+          source.sourceId === application.id &&
+          hasFieldPath(application.proposalSnapshot, source.fieldPath)
+        );
+      const answer = answers.find(
+        (candidate) => candidate.id === source.sourceId,
+      );
+      if (source.sourceType === 'Answer')
+        return Boolean(answer && hasFieldPath(answer.answer, source.fieldPath));
+      return Boolean(
+        answer &&
+        source.documentId &&
+        source.fieldPath === 'attachmentIds' &&
+        answer.attachmentIds.includes(source.documentId),
+      );
+    });
+    if (!citationsMatchApplication) {
+      throw new BadRequestException(
+        'AI review citations must reference fields captured for this application',
       );
     }
     const consent = await this.consents.findOne({

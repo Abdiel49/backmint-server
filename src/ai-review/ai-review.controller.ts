@@ -18,7 +18,11 @@ import {
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags,
+  ApiBadRequestResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
@@ -42,6 +46,11 @@ export class AIReviewController {
   constructor(private readonly aiReviews: AIReviewService) {}
 
   @Post('consent')
+  @ApiParam({
+    name: 'applicationId',
+    format: 'uuid',
+    example: '8b0f1835-4c3c-41ec-9f91-f370f59e7614',
+  })
   @ApiOperation({
     summary: 'Grant consent for advisory AI review processing and retention',
   })
@@ -70,6 +79,10 @@ export class AIReviewController {
   @ApiUnauthorizedResponse({
     description: 'A valid bearer session is required.',
   })
+  @ApiBadRequestResponse({ description: 'The retention period is invalid.' })
+  @ApiNotFoundResponse({
+    description: 'The applicant-owned application was not found.',
+  })
   async grantConsent(
     @Param('applicationId', ParseUUIDPipe) applicationId: string,
     @Body() body: GrantAIReviewConsentDto,
@@ -95,6 +108,11 @@ export class AIReviewController {
   }
 
   @Delete('consent')
+  @ApiParam({
+    name: 'applicationId',
+    format: 'uuid',
+    example: '8b0f1835-4c3c-41ec-9f91-f370f59e7614',
+  })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Withdraw AI review consent and erase its retained review outputs',
@@ -106,6 +124,9 @@ export class AIReviewController {
   @ApiUnauthorizedResponse({
     description: 'A valid bearer session is required.',
   })
+  @ApiNotFoundResponse({
+    description: 'The applicant-owned application was not found.',
+  })
   async withdrawConsent(
     @Param('applicationId', ParseUUIDPipe) applicationId: string,
     @CurrentSession() session: AuthenticatedSession,
@@ -114,6 +135,11 @@ export class AIReviewController {
   }
 
   @Get()
+  @ApiParam({
+    name: 'applicationId',
+    format: 'uuid',
+    example: '8b0f1835-4c3c-41ec-9f91-f370f59e7614',
+  })
   @ApiOperation({
     summary:
       'List retained advisory AI review outputs for the authenticated applicant',
@@ -136,7 +162,6 @@ export class AIReviewController {
               sourceType: 'Answer',
               sourceId: '98d913dc-334c-4d53-87f0-a857ab9ad383',
               fieldPath: 'team.experience',
-              documentId: '3b33c29f-e525-4319-9a63-66cf4b62e93b',
             },
           ],
           uncertaintyFlags: [
@@ -153,6 +178,12 @@ export class AIReviewController {
   })
   @ApiUnauthorizedResponse({
     description: 'A valid bearer session is required.',
+  })
+  @ApiForbiddenResponse({
+    description: 'AI review consent is not active or has expired.',
+  })
+  @ApiNotFoundResponse({
+    description: 'The applicant-owned application was not found.',
   })
   list(
     @Param('applicationId', ParseUUIDPipe) applicationId: string,

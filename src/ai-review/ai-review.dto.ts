@@ -27,8 +27,25 @@ export const aiReviewSourceReferenceSchema = z.strictObject({
   documentId: z.uuid().optional(),
 });
 
+export const recordAIReviewInputSchema = z.strictObject({
+  applicationId: z.uuid(),
+  modelProvider: z.string().trim().min(1).max(80),
+  modelName: z.string().trim().min(1).max(120),
+  modelVersion: z.string().trim().min(1).max(80),
+  promptVersion: z.string().trim().min(1).max(80),
+  citedSources: z.array(aiReviewSourceReferenceSchema).min(1).max(100),
+  uncertaintyFlags: z.array(z.string().trim().min(1).max(500)).max(100),
+  advisoryOutput: aiReviewAdvisoryOutputSchema,
+});
+
 export class GrantAIReviewConsentDto {
-  @ApiProperty({ minimum: 1, maximum: 365, default: 90, example: 90 })
+  @ApiProperty({
+    required: false,
+    minimum: 1,
+    maximum: 365,
+    default: 90,
+    example: 90,
+  })
   retentionDays!: number;
 }
 
@@ -73,9 +90,9 @@ export class AIReviewResponseDto {
     example: [
       {
         sourceType: 'Answer',
-        sourceId: 'application-uuid',
+        sourceId: '98d913dc-334c-4d53-87f0-a857ab9ad383',
         fieldPath: 'team.experience',
-        documentId: 'document-uuid',
+        documentId: '3b33c29f-e525-4319-9a63-66cf4b62e93b',
       },
     ],
   })

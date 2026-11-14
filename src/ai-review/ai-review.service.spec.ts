@@ -1,16 +1,38 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import type { DataSource, Repository } from 'typeorm';
-import { ApplicationEntity } from '../publications/application.entity.js';
+import {
+  ApplicationAnswerEntity,
+  ApplicationEntity,
+} from '../publications/application.entity.js';
 import { AIReviewConsentEntity } from './ai-review-consent.entity.js';
 import { AIReviewEntity } from './ai-review.entity.js';
 import { AIReviewService } from './ai-review.service.js';
 
 function createService() {
   const application = {
-    id: 'app-1',
+    id: '8b0f1835-4c3c-41ec-9f91-f370f59e7614',
+    sourceId: '82cfdfba-718f-4bf2-a245-46272f924ce8',
     applicantUserId: 'user-1',
+    applicantOrganizationId: null,
+    sourceSnapshot: {},
+    applicantSnapshot: {},
+    proposalSnapshot: {},
   } as ApplicationEntity;
+  const answerId = '98d913dc-334c-4d53-87f0-a857ab9ad383';
+  const answers = {
+    find: vi.fn().mockResolvedValue([
+      {
+        id: answerId,
+        answer: { team: { experience: 'Three years' } },
+        attachmentIds: [],
+      } as ApplicationAnswerEntity,
+    ]),
+  };
   const consent = {
     id: 'consent-1',
     applicationId: 'app-1',
@@ -30,14 +52,23 @@ function createService() {
   const service = new AIReviewService(
     dataSource,
     applications as unknown as Repository<ApplicationEntity>,
+    answers as unknown as Repository<ApplicationAnswerEntity>,
     consents as unknown as Repository<AIReviewConsentEntity>,
     reviews as unknown as Repository<AIReviewEntity>,
   );
-  return { service, application, consent, applications, consents, reviews };
+  return {
+    service,
+    application,
+    consent,
+    applications,
+    answers,
+    consents,
+    reviews,
+  };
 }
 
 const input = {
-  applicationId: 'app-1',
+  applicationId: '8b0f1835-4c3c-41ec-9f91-f370f59e7614',
   modelProvider: 'openai',
   modelName: 'review-model',
   modelVersion: '2026-10-15',
@@ -47,7 +78,6 @@ const input = {
       sourceType: 'Answer' as const,
       sourceId: '98d913dc-334c-4d53-87f0-a857ab9ad383',
       fieldPath: 'team.experience',
-      documentId: '3b33c29f-e525-4319-9a63-66cf4b62e93b',
     },
   ],
   uncertaintyFlags: ['Evidence is self-reported'],
@@ -58,6 +88,18 @@ const input = {
 };
 
 describe('AIReviewService', () => {
+  it('limits requested consent retention to one year', async () => {
+    const { service } = createService();
+
+    await expect(
+      service.grantConsent(
+        '8b0f1835-4c3c-41ec-9f91-f370f59e7614',
+        'user-1',
+        366,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('persists model and prompt provenance, source citations and uncertainty separately from Evaluation', async () => {
     const { service, reviews, consent } = createService();
 
@@ -77,6 +119,24 @@ describe('AIReviewService', () => {
     await expect(
       service.recordAdvisoryOutput({ ...input, citedSources: [] }),
     ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(reviews.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects citations to answers or fields outside the application', async () => {
+    const { service, reviews } = createService();
+
+    await expect(
+      service.recordAdvisoryOutput({
+        ...input,
+        citedSources: [
+          {
+            sourceType: 'Answer',
+            sourceId: 'b6fca21d-3e0d-4b32-aee5-0db0e9a112ac',
+            fieldPath: 'team.experience',
+          },
+        ],
+      }),
+    ).rejects.toThrow('fields captured for this application');
     expect(reviews.save).not.toHaveBeenCalled();
   });
 
@@ -109,7 +169,10 @@ describe('AIReviewService', () => {
     const { service } = createService();
 
     await expect(
-      service.listForApplicant('app-1', 'another-user'),
+      service.listForApplicant(
+        '8b0f1835-4c3c-41ec-9f91-f370f59e7614',
+        'another-user',
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
