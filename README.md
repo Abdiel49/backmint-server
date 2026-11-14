@@ -42,6 +42,8 @@ $ docker compose up -d
 
 The API reads runtime settings through NestJS `ConfigModule`. Configure S3-compatible private storage and the NEAR testnet contract variables before starting the server. Redis backs durable BullMQ jobs for scans, notifications and chain reconciliation. Start the server with `pnpm start:dev`, then use `GET /api/health` to verify the server and PostgreSQL connection. Swagger UI is available at `http://localhost:3001/docs` and the OpenAPI JSON document at `http://localhost:3001/docs/openapi.json`.
 
+Credentialed CORS requests are limited to `CORS_ORIGINS`. Set `TRUSTED_PROXY_HOPS` only to the number of trusted reverse proxies in front of the service; it defaults to `0`. Each HTTP request receives a validated `X-Request-Id` or a generated UUID, returned in the response and included in structured request logs. Nest shutdown hooks close application providers during termination.
+
 ## Database migrations
 
 Application startup never synchronizes the schema or runs pending migrations. Apply schema changes explicitly:
