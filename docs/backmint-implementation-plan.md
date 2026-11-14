@@ -272,7 +272,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Version public APIs and generate/version a TypeScript client from OpenAPI without requiring a shared repository.
   - Done when: client generation and OpenAPI snapshots run in CI and breaking changes are explicitly versioned.
   - Failure: FAILED — <UTC timestamp> — client/API contract drift — integration breakage — <owner> — restore compatible contract or publish versioned change.
-- [ ] Apply idempotency keys to all monetary initiations and mutable decisions, with request hash and result replay behavior.
+- [~] Apply idempotency keys to all monetary initiations and mutable decisions, with request hash and result replay behavior.
   - Done when: retrying the same key returns the original result; conflicting payload under same key is rejected.
   - Failure: FAILED — <UTC timestamp> — idempotency key permits duplicate/conflicting effect — financial/governance risk — <owner> — disable endpoint and repair key store.
 - [ ] Define versioned cross-repository artifacts for IDs, statuses, asset units, contract ABI, network and events shared with `backmint-app` and `backmint-contracts`.
