@@ -35,7 +35,7 @@ import { AuditPersistenceModule } from '../audit/audit-persistence.module.js';
   imports: [
     IdentityModule,
     OrganizationsModule,
-    AuditPersistenceModule
+    AuditPersistenceModule,
     TypeOrmModule.forFeature([
       ProjectEntity,
       ProjectVersionEntity,
