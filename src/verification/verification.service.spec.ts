@@ -144,6 +144,76 @@ describe('VerificationService', () => {
     );
   });
 
+  it.each(['NeedsInfo', 'Rejected'] as const)(
+    'records the %s reviewer outcome',
+    async (decision) => {
+      const harness = createHarness();
+      harness.verificationCase.createdByUserId = 'submitter-1';
+      await harness.service.decide(
+        'reviewer-1',
+        'case-1',
+        decision,
+        'Review outcome',
+      );
+      expect(harness.verificationCase).toMatchObject({
+        status: decision,
+        decidedByUserId: 'reviewer-1',
+        decisionReason: 'Review outcome',
+      });
+    },
+  );
+
+  it('prevents the case submitter from reviewing their own case', async () => {
+    const harness = createHarness();
+    await expect(
+      harness.service.decide('owner-1', 'case-1', 'Verified', 'Self review'),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('revokes a case and preserves the reason', async () => {
+    const harness = createHarness();
+    const result = await harness.service.revoke(
+      'owner-1',
+      'case-1',
+      'Evidence withdrawn',
+    );
+    expect(result).toMatchObject({
+      status: VerificationStatus.Revoked,
+      decidedByUserId: 'owner-1',
+      decisionReason: 'Evidence withdrawn',
+    });
+    expect(result.revokedAt).toBeInstanceOf(Date);
+  });
+
+  it('creates scoped private upload references and persists their metadata', async () => {
+    const harness = createHarness();
+    harness.verificationCase.status = VerificationStatus.NotStarted;
+    const result = await harness.service.createDocumentUpload(
+      'owner-1',
+      'case-1',
+      {
+        fileName: 'registration.pdf',
+        contentType: 'application/pdf',
+        contentLength: 2048,
+        checksumSha256: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+      },
+    );
+    expect(result.url).toBe('signed-upload');
+    expect(harness.storage.createUploadUrl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: 'verification/org-1/case-1',
+        contentType: 'application/pdf',
+      }),
+    );
+    expect(harness.documentRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        objectKey: 'verification/org-1/case-1/file',
+        fileName: 'registration.pdf',
+        uploadedByUserId: 'owner-1',
+      }),
+    );
+  });
+
   it('hides verification cases from users outside the organization', async () => {
     const harness = createHarness();
     harness.membershipRepository.findOneBy.mockResolvedValue(null);
