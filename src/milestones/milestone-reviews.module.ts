@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditPersistenceModule } from '../audit/audit-persistence.module.js';
+import { IdentityModule } from '../identity/identity.module.js';
 import {
   EvidenceAssetEntity,
   EvidenceSubmissionEntity,
@@ -21,6 +22,7 @@ import { MilestoneReviewsService } from './milestone-reviews.service.js';
       MilestoneReviewEntity,
     ]),
     AuditPersistenceModule,
+    IdentityModule,
   ],
   controllers: [MilestoneReviewsController],
   providers: [MilestoneReviewsService],
