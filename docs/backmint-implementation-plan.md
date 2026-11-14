@@ -68,7 +68,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [ ] Define UUID or ULID primary key policy, UTC timestamp policy, optimistic state version policy and migration naming convention.
   - Done when: every new aggregate migration applies the shared identifiers and timestamps consistently.
   - Failure: FAILED — <UTC timestamp> — aggregate violates persistence convention — audit/migration inconsistency — <owner> — align entity and migration.
-- [ ] Define enums and transition guards for visibility, intake, lifecycle, application, offer, award, agreement, milestone, finance and verification states.
+- [~] Define enums and transition guards for visibility, intake, lifecycle, application, offer, award, agreement, milestone, finance and verification states.
   - Done when: illegal transitions are rejected by unit tests and transition events are audited.
   - Failure: FAILED — <UTC timestamp> — illegal transition accepted — workflow integrity risk — <owner> — add guard and regression test.
 - [ ] Define immutable snapshot/version primitives for published sources, submitted proposals, agreement terms and evidence submissions.
