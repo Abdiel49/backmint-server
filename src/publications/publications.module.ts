@@ -54,7 +54,7 @@ import { AuditPersistenceModule } from '../audit/audit-persistence.module.js';
       AwardEntity,
     ]),
   ],
-  controllers: [OpportunityController, PublicationManagementController],
+  controllers: [OpportunityController, EvaluationsController, PublicationManagementController],
   providers: [
     PublicationService,
     OpportunityService,
