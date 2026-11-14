@@ -260,7 +260,7 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 10 — Notifications, embeds, public profiles and analytics
 
-- [ ] Implement notification preferences, inbox/email delivery, retries, deduplication and failure monitoring.
+- [~] Implement notification preferences, inbox persistence, queue-based processing/retries, deduplication and failure monitoring. Email delivery remains unavailable until a mail provider is configured.
   - Done when: notification events are outbox-driven, idempotent and respect user preferences.
   - Failure: FAILED — <UTC timestamp> — notification is lost, duplicated or violates preference — communication/privacy risk — <owner> — replay safely and repair delivery policy.
 - [ ] Implement `ExternalEmbed` with source relation, host organization, allowed origins, theme, mode, status and script version.
