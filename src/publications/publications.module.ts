@@ -23,6 +23,8 @@ import {
   EvaluationRoundEntity,
 } from '../evaluations/evaluation.entity.js';
 import { EvaluationsService } from '../evaluations/evaluations.service.js';
+import { AwardEntity } from './award.entity.js';
+import { AwardsService } from './awards.service.js';
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ import { EvaluationsService } from '../evaluations/evaluations.service.js';
       EvaluationRoundEntity,
       EvaluationAssignmentEntity,
       EvaluationEntity,
+      AwardEntity,
     ]),
   ],
   controllers: [OpportunityController],
@@ -49,12 +52,14 @@ import { EvaluationsService } from '../evaluations/evaluations.service.js';
     OpportunityService,
     ParticipationService,
     EvaluationsService,
+    AwardsService,
   ],
   exports: [
     PublicationService,
     OpportunityService,
     ParticipationService,
     EvaluationsService,
+    AwardsService,
   ],
 })
 export class PublicationsModule {}
