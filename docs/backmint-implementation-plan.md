@@ -109,25 +109,25 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 
 ## Phase 3 — Projects, Calls and public opportunity read model
 
-- [ ] Implement `Project` and `ProjectVersion` as independent aggregates with owner, objectives, costs, direction, target, visibility, lifecycle and intake state.
+- [x] Implement `Project` and `ProjectVersion` as independent aggregates with owner, objectives, costs, direction, target, visibility, lifecycle and intake state.
   - Done when: a Project can exist without a Call and published changes create immutable versions.
   - Failure: FAILED — <UTC timestamp> — Project requires/corrupts Call relationship — invalid product model — <owner> — separate aggregate and migrate data.
-- [ ] Implement `Call` and `CallVersion` as independent aggregates with audience, capacity, allocation policy, support terms, intake window and publication state.
+- [x] Implement `Call` and `CallVersion` as independent aggregates with audience, capacity, allocation policy, support terms, intake window and publication state.
   - Done when: a Call can exist without a Project and preserves its own published versions.
   - Failure: FAILED — <UTC timestamp> — Call is coupled to Project or mutable after publication — invalid program model — <owner> — repair boundary/versioning.
-- [ ] Implement visibility (`Private`, `Unlisted`, `Public`) independently from intake (`Open`, `Paused`, `Closed`) and lifecycle transitions.
+- [x] Implement visibility (`Private`, `Unlisted`, `Public`) independently from intake (`Open`, `Paused`, `Closed`) and lifecycle transitions.
   - Done when: open/pause/close/reopen changes intake only; public status does not reveal private participation data.
   - Failure: FAILED — <UTC timestamp> — intake action changes visibility/lifecycle unexpectedly — disclosure or workflow error — <owner> — restore independent state transition.
-- [ ] Implement funding direction rules: `FundingOffered` accepts Applications and `FundingRequested` accepts FundingOffers.
+- [~] Implement funding direction rules: `FundingOffered` accepts Applications and `FundingRequested` accepts FundingOffers.
   - Done when: cross-direction submission types are rejected at API and domain layers.
   - Failure: FAILED — <UTC timestamp> — wrong submission type accepted — financial workflow ambiguity — <owner> — reject/migrate invalid record.
-- [ ] Implement informational funding target and optional hard-cap policy without auto-closing intake unless configured.
+- [~] Implement informational funding target and optional hard-cap policy without auto-closing intake unless configured.
   - Done when: reaching a soft target preserves configured visibility/intake; hard cap enforces its explicit rule.
   - Failure: FAILED — <UTC timestamp> — target incorrectly closes intake or hard cap is bypassed — funding policy violation — <owner> — repair projection/constraint.
-- [ ] Implement `EligibilityRule`, `Questionnaire`, `Question`, `OpportunityPolicy` and validation for audience type, jurisdiction, verification level, quotas and dates.
+- [~] Implement `EligibilityRule`, `Questionnaire`, `Question`, `OpportunityPolicy` and validation for audience type, jurisdiction, verification level, quotas and dates.
   - Done when: publication rejects empty audience, invalid budget/quota, invalid dates and policy contradictions.
   - Failure: FAILED — <UTC timestamp> — invalid opportunity policy publishes — eligibility/budget risk — <owner> — unpublish/fix version and add validation.
-- [ ] Implement public `Opportunity` projection that unifies Projects and Calls by `(sourceType, sourceId)` without creating a third write aggregate.
+- [x] Implement public `Opportunity` projection that unifies Projects and Calls by `(sourceType, sourceId)` without creating a third write aggregate.
   - Done when: public browse/read has stable filtering/pagination and never exposes confidential fields.
   - Failure: FAILED — <UTC timestamp> — projection leaks private data or becomes a write source — privacy/domain-boundary violation — <owner> — disable projection and repair query model.
 
