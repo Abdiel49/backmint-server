@@ -3,6 +3,8 @@ import type { ConfigType } from '@nestjs/config';
 import { DataSource, IsNull } from 'typeorm';
 import { malwareScanConfig } from '../config/configuration.js';
 import { ObjectStorageService } from '../infrastructure/object-storage/object-storage.service.js';
+import { AsyncQueueName } from '../infrastructure/async-queues/async-queues.constants.js';
+import { AsyncQueuesService } from '../infrastructure/async-queues/async-queues.service.js';
 import { OrganizationEntity } from '../organizations/organization.entity.js';
 import { OrganizationMembershipEntity } from '../organizations/organization-membership.entity.js';
 import { OrganizationRepresentativeEntity } from '../organizations/organization-representative.entity.js';
@@ -13,6 +15,7 @@ export class ApplicationAttachmentService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly storage: ObjectStorageService,
+    private readonly queues: AsyncQueuesService,
     @Inject(malwareScanConfig.KEY) private readonly scanConfig: ConfigType<typeof malwareScanConfig>,
   ) {}
 
@@ -37,7 +40,7 @@ export class ApplicationAttachmentService {
   }
 
   async completeUpload(actorUserId: string, attachmentId: string) {
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const repository = manager.getRepository(ApplicationAttachmentEntity);
       const attachment = await repository.findOne({ where: { id: attachmentId, uploadedByUserId: actorUserId }, lock: { mode: 'pessimistic_write' } });
       if (!attachment) throw new NotFoundException('Application attachment was not found');
@@ -51,7 +54,7 @@ export class ApplicationAttachmentService {
         }
         if (!permitted) throw new ForbiddenException('Active applicant organization authority is required');
       }
-      if (attachment.status === 'Uploaded') return { attachmentId: attachment.id, status: attachment.status };
+      if (['Uploaded', 'Clean', 'Quarantined'].includes(attachment.status)) return { attachmentId: attachment.id, status: attachment.status };
       if (attachment.status !== 'PendingUpload') throw new ConflictException('Application attachment is not awaiting upload');
       const scope = `applications/uploads/${attachment.organizationId ?? attachment.uploadedByUserId}/${attachment.uploadedByUserId}`;
       let stored;
@@ -70,5 +73,13 @@ export class ApplicationAttachmentService {
       await repository.save(attachment);
       return { attachmentId: attachment.id, status: attachment.status };
     });
+    if (result.status === 'Uploaded') {
+      try {
+        await this.queues.enqueue(AsyncQueueName.ApplicationAttachmentScans, 'scan-application-attachment', { attachmentId: result.attachmentId }, { jobId: `application-attachment-${result.attachmentId}` });
+      } catch {
+        throw new ServiceUnavailableException('Attachment malware scan could not be queued; retry upload completion');
+      }
+    }
+    return result;
   }
 }

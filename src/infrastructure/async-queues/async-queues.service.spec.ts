@@ -23,6 +23,7 @@ function createService(attempts = 5) {
     getJob: vi.fn(),
     add: vi.fn(),
   };
+  const applicationAttachmentScansQueue = { name: AsyncQueueName.ApplicationAttachmentScans, getJob: vi.fn(), add: vi.fn() };
   const aggregationQueue = {
     name: AsyncQueueName.Aggregation,
     getJob: vi.fn(),
@@ -48,6 +49,7 @@ function createService(attempts = 5) {
     notificationsQueue as never,
     malwareScansQueue as never,
     milestoneEvidenceScansQueue as never,
+    applicationAttachmentScansQueue as never,
     chainReconciliationQueue as never,
     aggregationQueue as never,
     retryableDeliveryQueue as never,

@@ -6,6 +6,7 @@ import { malwareScanConfig } from '../src/config/configuration.js';
 import { AuthSessionGuard } from '../src/identity/auth-session.guard.js';
 import { AuthSessionService } from '../src/identity/auth-session.service.js';
 import { ObjectStorageService } from '../src/infrastructure/object-storage/object-storage.service.js';
+import { AsyncQueuesService } from '../src/infrastructure/async-queues/async-queues.service.js';
 import { OrganizationEntity } from '../src/organizations/organization.entity.js';
 import { OrganizationMembershipEntity } from '../src/organizations/organization-membership.entity.js';
 import { ApplicationAttachmentController } from '../src/publications/application-attachment.controller.js';
@@ -19,11 +20,13 @@ describe('Application attachment upload (e2e)', () => {
   const headObject = vi.fn();
   const findAttachment = vi.fn();
   const save = vi.fn();
+  const enqueue = vi.fn();
   const input = { organizationId, mimeType: 'application/pdf', sizeBytes: 524288, checksumSha256: 'a'.repeat(64) };
 
   beforeAll(async () => {
     createUploadUrl.mockResolvedValue({ key: 'applications/uploads/private/file', url: 'https://objects.example.test/upload', expiresAt: new Date('2027-01-15T18:00:00Z') });
     save.mockImplementation(async (value) => ({ ...value, id: '4e38df44-63d1-467a-90d4-bde6bce3e6db' }));
+    enqueue.mockResolvedValue('job');
     const getRepository = (entity: unknown) => {
       if (entity === OrganizationEntity) return { findOneBy: vi.fn().mockResolvedValue({ id: organizationId }) };
       if (entity === OrganizationMembershipEntity) return { findOneBy: vi.fn(async ({ userId }) => userId === 'user-owner' ? { role: 'Owner' } : null) };
@@ -35,6 +38,7 @@ describe('Application attachment upload (e2e)', () => {
       providers: [ApplicationAttachmentService, AuthSessionGuard,
         { provide: malwareScanConfig.KEY, useValue: { maxBytes: 1000000 } },
         { provide: ObjectStorageService, useValue: { createUploadUrl, headObject } },
+        { provide: AsyncQueuesService, useValue: { enqueue } },
         { provide: AuthSessionService, useValue: { authenticate: vi.fn(async (token: string) => token === 'owner' ? { userId: 'user-owner' } : token === 'other' ? { userId: 'user-other' } : null) } },
         { provide: DataSource, useValue: { transaction: (callback: (manager: unknown) => unknown) => callback({ getRepository }), getRepository } },
       ],
@@ -44,7 +48,7 @@ describe('Application attachment upload (e2e)', () => {
     await app.init();
   });
   afterAll(async () => app.close());
-  beforeEach(() => { createUploadUrl.mockClear(); save.mockClear(); headObject.mockReset(); findAttachment.mockReset(); });
+  beforeEach(() => { createUploadUrl.mockClear(); save.mockClear(); enqueue.mockClear(); headObject.mockReset(); findAttachment.mockReset(); });
 
   it('requires a session and active organization authority', async () => {
     await request(app.getHttpServer()).post('/api/applications/attachments/uploads').send(input).expect(401);
@@ -75,6 +79,7 @@ describe('Application attachment upload (e2e)', () => {
     expect(response.body).toEqual({ attachmentId: id, status: 'Uploaded' });
     expect(headObject).toHaveBeenCalledWith('private/file', `applications/uploads/${organizationId}/user-owner`);
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ status: 'Uploaded' }));
+    expect(enqueue).toHaveBeenCalledWith('application-attachment-scans', 'scan-application-attachment', { attachmentId: id }, { jobId: `application-attachment-${id}` });
   });
 
   it('rejects missing, mismatched and unauthorized uploads without changing status', async () => {
@@ -94,12 +99,22 @@ describe('Application attachment upload (e2e)', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('returns the existing confirmation on retry without querying storage', async () => {
+  it('requeues an existing confirmation on retry without querying storage', async () => {
     const id = '4e38df44-63d1-467a-90d4-bde6bce3e6db';
     findAttachment.mockResolvedValue({ id, uploadedByUserId: 'user-owner', organizationId: null, status: 'Uploaded' });
     const response = await request(app.getHttpServer()).post(`/api/applications/attachments/${id}/complete`).set('Authorization', 'Bearer owner').expect(200);
     expect(response.body).toEqual({ attachmentId: id, status: 'Uploaded' });
     expect(headObject).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
+    expect(enqueue).toHaveBeenCalledOnce();
+  });
+
+  it('returns 503 when the scan cannot be queued and permits a later retry', async () => {
+    const id = '4e38df44-63d1-467a-90d4-bde6bce3e6db';
+    findAttachment.mockResolvedValue({ id, uploadedByUserId: 'user-owner', organizationId: null, status: 'Uploaded' });
+    enqueue.mockRejectedValueOnce(new Error('queue unavailable'));
+    await request(app.getHttpServer()).post(`/api/applications/attachments/${id}/complete`).set('Authorization', 'Bearer owner').expect(503);
+    await request(app.getHttpServer()).post(`/api/applications/attachments/${id}/complete`).set('Authorization', 'Bearer owner').expect(200);
+    expect(enqueue).toHaveBeenCalledTimes(2);
   });
 });
