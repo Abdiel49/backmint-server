@@ -2,23 +2,35 @@ import { ConflictException } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 import { OrganizationType } from './organization.entity.js';
 import { OrganizationService } from './organization.service.js';
+import { OrganizationEntity } from './organization.entity.js';
 
 function createService() {
-  const repository = {
+  const organizations = {
     create: vi.fn((value) => value),
     save: vi.fn(),
   };
+  const memberships = { create: vi.fn((value) => value), save: vi.fn() };
+  const dataSource = {
+    transaction: vi.fn(async (callback) =>
+      callback({
+        getRepository: (entity) =>
+          entity === OrganizationEntity ? organizations : memberships,
+      }),
+    ),
+  };
   return {
-    service: new OrganizationService(repository as never),
-    repository,
+    service: new OrganizationService(dataSource as never),
+    organizations,
+    memberships,
   };
 }
 
 describe('OrganizationService', () => {
   it('normalizes organization input and assigns ownership from authenticated context', async () => {
-    const { service, repository } = createService();
-    repository.save.mockImplementation(async (value) => ({
+    const { service, organizations, memberships } = createService();
+    organizations.save.mockImplementation(async (value) => ({
       id: 'organization-1',
+      createdAt: new Date('2026-11-14T00:00:00.000Z'),
       ...value,
     }));
 
@@ -38,6 +50,14 @@ describe('OrganizationService', () => {
       visibility: 'Private',
       status: 'Active',
     });
+    expect(memberships.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'organization-1',
+        userId: 'user-1',
+        role: 'Owner',
+        status: 'Active',
+      }),
+    );
   });
 
   it('rejects missing owner context', async () => {
@@ -55,11 +75,11 @@ describe('OrganizationService', () => {
   });
 
   it('maps the database slug constraint to a conflict', async () => {
-    const { service, repository } = createService();
+    const { service, organizations } = createService();
     const databaseError = Object.assign(new Error('duplicate'), {
       code: '23505',
     });
-    repository.save.mockRejectedValue(
+    organizations.save.mockRejectedValue(
       new QueryFailedError('INSERT', [], databaseError),
     );
 

@@ -92,10 +92,10 @@ Do not mark a financial task complete from an HTTP success response alone. Its c
 - [~] Implement `Organization`, unique scoped slug, country, type, legal/informal status, visibility and owner selection.
   - Done when: duplicate/invalid organizations are rejected and ownership is auditable.
   - Failure: FAILED — <UTC timestamp> — organization uniqueness or owner rule fails — identity collision risk — <owner> — repair constraint and reconcile duplicates.
-- [ ] Implement organization invitations, `OrganizationMembership`, active-pair uniqueness, acceptance and role lifecycle.
+- [x] Implement organization invitations, `OrganizationMembership`, active-pair uniqueness, acceptance and role lifecycle.
   - Done when: memberships support owner, admin, project manager, evaluator, finance approver, representative and observer policies.
   - Failure: FAILED — <UTC timestamp> — membership grants incorrect access — authorization risk — <owner> — revoke excess membership and repair policy.
-- [ ] Implement `OrganizationRepresentative` and authority expiration/revocation checks distinct from admin access.
+- [x] Implement `OrganizationRepresentative` and authority expiration/revocation checks distinct from admin access.
   - Done when: only currently verified representatives may accept legal terms in production mode.
   - Failure: FAILED — <UTC timestamp> — non-representative can bind an organization — legal authority risk — <owner> — block acceptance and audit prior actions.
 - [ ] Implement private verification document uploads, `VerificationCase`, reviewer workflow, expiry and revocation.

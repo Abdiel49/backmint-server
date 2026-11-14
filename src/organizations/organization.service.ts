@@ -1,6 +1,10 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { DataSource, QueryFailedError } from 'typeorm';
+import { OrganizationRole } from '../domain/authorization/authorization.js';
+import {
+  OrganizationMembershipEntity,
+  OrganizationMembershipStatus,
+} from './organization-membership.entity.js';
 import {
   LegalStatus,
   OrganizationEntity,
@@ -19,10 +23,7 @@ export type CreateOrganizationInput = {
 
 @Injectable()
 export class OrganizationService {
-  constructor(
-    @InjectRepository(OrganizationEntity)
-    private readonly organizations: Repository<OrganizationEntity>,
-  ) {}
+  constructor(private readonly dataSource: DataSource) {}
 
   async create(
     ownerUserId: string,
@@ -32,18 +33,37 @@ export class OrganizationService {
       throw new TypeError('Authenticated owner user ID is required');
     }
 
-    const organization = this.organizations.create({
-      ...input,
-      slug: input.slug.trim().toLowerCase(),
-      name: input.name.trim(),
-      country: input.country.trim().toUpperCase(),
-      ownerUserId,
-      visibility: input.visibility ?? OrganizationVisibility.Private,
-      status: 'Active',
-    });
-
     try {
-      return await this.organizations.save(organization);
+      return await this.dataSource.transaction(async (manager) => {
+        const organizationRepository =
+          manager.getRepository(OrganizationEntity);
+        const membershipRepository = manager.getRepository(
+          OrganizationMembershipEntity,
+        );
+        const organization = await organizationRepository.save(
+          organizationRepository.create({
+            ...input,
+            slug: input.slug.trim().toLowerCase(),
+            name: input.name.trim(),
+            country: input.country.trim().toUpperCase(),
+            ownerUserId,
+            visibility: input.visibility ?? OrganizationVisibility.Private,
+            status: 'Active',
+          }),
+        );
+        await membershipRepository.save(
+          membershipRepository.create({
+            organizationId: organization.id,
+            userId: ownerUserId,
+            role: OrganizationRole.Owner,
+            status: OrganizationMembershipStatus.Active,
+            invitedByUserId: ownerUserId,
+            acceptedAt: organization.createdAt,
+            revokedAt: null,
+          }),
+        );
+        return organization;
+      });
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
