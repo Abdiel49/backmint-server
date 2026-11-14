@@ -11,6 +11,7 @@ import { WalletLinkEntity } from './wallet-link.entity.js';
 import { WalletLinkService } from './wallet-link.service.js';
 import { NearModule } from '../infrastructure/near/near.module.js';
 import { AuthSessionController } from './auth-session.controller.js';
+import { WalletLinkController } from './wallet-link.controller.js';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { AuthSessionController } from './auth-session.controller.js';
     AuthSessionService,
     AuthSessionGuard,
   ],
-  controllers: [AuthSessionController],
+  controllers: [AuthSessionController, WalletLinkController],
   exports: [
     IdentityService,
     WalletLinkService,

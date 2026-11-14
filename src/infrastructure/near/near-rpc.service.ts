@@ -77,10 +77,17 @@ export class NearRpcService {
     );
   }
 
-  async hasAccessKey(accountId: string, publicKey: string): Promise<boolean> {
+  async hasFullAccessKey(
+    accountId: string,
+    publicKey: string,
+  ): Promise<boolean> {
     return this.withRetry(async () => {
       const result = await this.provider.viewAccessKeyList({ accountId });
-      return result.keys.some((key) => key.public_key.toString() === publicKey);
+      return result.keys.some(
+        (key) =>
+          key.public_key.toString() === publicKey &&
+          key.access_key.permission === 'FullAccess',
+      );
     });
   }
 
