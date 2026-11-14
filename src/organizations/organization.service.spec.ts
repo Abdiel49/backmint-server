@@ -26,6 +26,31 @@ function createService() {
 }
 
 describe('OrganizationService', () => {
+  it('lists only active organizations with active memberships for the caller', async () => {
+    const memberships = {
+      find: vi.fn(async () => [
+        {
+          organization: { id: 'org-1', status: 'Active' },
+        },
+        {
+          organization: { id: 'org-2', status: 'Suspended' },
+        },
+      ]),
+    };
+    const service = new OrganizationService({
+      getRepository: vi.fn(() => memberships),
+    } as never);
+
+    await expect(service.listForUser('user-1')).resolves.toEqual([
+      { id: 'org-1', status: 'Active' },
+    ]);
+    expect(memberships.find).toHaveBeenCalledWith({
+      where: { userId: 'user-1', status: 'Active' },
+      relations: { organization: true },
+      order: { createdAt: 'ASC' },
+    });
+  });
+
   it('normalizes organization input and assigns ownership from authenticated context', async () => {
     const { service, organizations, memberships } = createService();
     organizations.save.mockImplementation(async (value) => ({
