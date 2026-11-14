@@ -84,6 +84,7 @@ const environmentSchema = z.object({
   NEAR_NETWORK: z.enum(['testnet', 'mainnet']).default('testnet'),
   NEAR_RPC_URL: z.url(),
   NEAR_CONTRACT_ID: z.string().min(1),
+  WALLET_CHALLENGE_RECIPIENT: z.string().min(1).default('backmint-server'),
   OBSERVE_APP_KEY: z
     .string()
     .optional()
@@ -206,6 +207,15 @@ export const nearConfig = registerAs('near', () => {
     contractVersion: environment.NEAR_CONTRACT_VERSION,
     maxAttempts: environment.NEAR_RPC_MAX_ATTEMPTS,
     retryDelayMs: environment.NEAR_RPC_RETRY_DELAY_MS,
+  };
+});
+
+export const walletConfig = registerAs('wallet', () => {
+  const environment = getEnvironment();
+
+  return {
+    challengeRecipient: environment.WALLET_CHALLENGE_RECIPIENT,
+    challengeTtlSeconds: 300,
   };
 });
 
