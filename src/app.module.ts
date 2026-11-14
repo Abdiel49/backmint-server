@@ -34,6 +34,7 @@ import { VerificationModule } from './verification/verification.module.js';
 import { ChainOperationsModule } from './finance/chain-operations.module.js';
 import { AIReviewModule } from './ai-review/ai-review.module.js';
 import { ParticipationModule } from './participation/participation.module.js';
+import { AgreementsModule } from './agreements/agreements.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -134,6 +135,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ChainOperationsModule,
     AIReviewModule,
     ParticipationModule,
+    AgreementsModule,
   ],
   controllers: [AppController],
   providers: [
