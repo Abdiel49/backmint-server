@@ -11,6 +11,9 @@ export class ApplicationAttachmentEntity {
   @Column({ type: 'uuid', nullable: true })
   organizationId!: string | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  applicationId!: string | null;
+
   @Column({ type: 'varchar', length: 1024, unique: true })
   storageKey!: string;
 

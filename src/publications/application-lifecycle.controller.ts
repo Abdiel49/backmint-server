@@ -184,11 +184,11 @@ export class ApplicationLifecycleController {
   })
   @ApiBadRequestResponse({
     description:
-      'The predecessor state, current source policy, eligibility or questionnaire does not allow resubmission.',
+      'The predecessor state, current source policy, eligibility, questionnaire or attachment does not allow resubmission.',
     schema: {
       example: {
         statusCode: 400,
-        message: 'This source does not allow resubmission',
+        message: 'Application attachment is unavailable',
         error: 'Bad Request',
       },
     },

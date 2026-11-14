@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { DataSource, EntityManager, IsNull } from 'typeorm';
+import { DataSource, EntityManager, In, IsNull } from 'typeorm';
 import { CallEntity, CallVersionEntity } from './call.entity.js';
 import { ProjectEntity, ProjectVersionEntity } from './project.entity.js';
 import {
@@ -30,6 +30,7 @@ import {
 } from './publication.types.js';
 import { assertSubmissionDirection } from './publication.validation.js';
 import { assertApplicantAudience, assertApplicantJurisdiction } from './eligibility-policy.js';
+import { ApplicationAttachmentEntity } from './application-attachment.entity.js';
 
 export type ApplicationSubmission = {
   sourceType: PublicationSourceType;
@@ -225,6 +226,22 @@ export class ParticipationService {
       source.content.questionnaire?.questions ?? [],
       input.answers,
     );
+    const attachmentIds = input.answers.flatMap((answer) => answer.attachmentIds ?? []).map((id) => id.toLowerCase());
+    if (new Set(attachmentIds).size !== attachmentIds.length)
+      throw new BadRequestException('Application attachment identifiers must be unique');
+    if (attachmentIds.length) {
+      const attachments = await manager.getRepository(ApplicationAttachmentEntity).find({
+        where: { id: In(attachmentIds) },
+        order: { id: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (attachments.length !== attachmentIds.length || attachments.some((attachment) =>
+        attachment.applicationId !== null || attachment.status !== 'PendingUpload' ||
+        (input.applicantOrganizationId
+          ? attachment.organizationId !== input.applicantOrganizationId
+          : attachment.organizationId !== null || attachment.uploadedByUserId !== input.applicantUserId)))
+        throw new BadRequestException('Application attachment is unavailable');
+    }
     if (input.referencedProjectId) {
       const referenced = await manager
         .getRepository(ProjectEntity)
@@ -257,6 +274,8 @@ export class ParticipationService {
         receipt: randomUUID(),
       }),
     );
+    if (attachmentIds.length)
+      await manager.getRepository(ApplicationAttachmentEntity).update({ id: In(attachmentIds) }, { applicationId: application.id });
     const answerRepository = manager.getRepository(ApplicationAnswerEntity);
     await answerRepository.save(
       input.answers.map((answer) =>
