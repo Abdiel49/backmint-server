@@ -1,9 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddWalletProofToAgreementAcceptances1795820401000
-  implements MigrationInterface
-{
-  name = 'AddWalletProofToAgreementAcceptances1795820401000';
+export class AddWalletProofToAgreementAcceptances1795820403000 implements MigrationInterface {
+  name = 'AddWalletProofToAgreementAcceptances1795820403000';
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

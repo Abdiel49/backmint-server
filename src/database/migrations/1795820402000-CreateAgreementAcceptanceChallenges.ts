@@ -1,9 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateAgreementAcceptanceChallenges1795820400000
-  implements MigrationInterface
-{
-  name = 'CreateAgreementAcceptanceChallenges1795820400000';
+export class CreateAgreementAcceptanceChallenges1795820402000 implements MigrationInterface {
+  name = 'CreateAgreementAcceptanceChallenges1795820402000';
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
@@ -28,12 +26,12 @@ export class CreateAgreementAcceptanceChallenges1795820400000
         CONSTRAINT "FK_agreement_acceptance_challenge_version" FOREIGN KEY ("agreementId", "version") REFERENCES "agreement_versions"("agreementId", "version") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(
-      'CREATE UNIQUE INDEX "UQ_agreement_acceptance_challenges_nonce_hash" ON "agreement_acceptance_challenges" ("nonceHash")',
-    );
-    await queryRunner.query(
-      'CREATE INDEX "IDX_agreement_acceptance_challenges_user_expiry" ON "agreement_acceptance_challenges" ("userId", "expiresAt")',
-    );
+    await queryRunner.query(`
+      CREATE UNIQUE INDEX "UQ_agreement_acceptance_challenges_nonce_hash" ON "agreement_acceptance_challenges" ("nonceHash")
+    `);
+    await queryRunner.query(`
+      CREATE INDEX "IDX_agreement_acceptance_challenges_user_expiry" ON "agreement_acceptance_challenges" ("userId", "expiresAt")
+    `);
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
