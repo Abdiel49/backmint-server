@@ -1,11 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, IsNull } from 'typeorm';
 import { CallEntity, CallVersionEntity } from './call.entity.js';
 import { ProjectEntity, ProjectVersionEntity } from './project.entity.js';
 import {
@@ -15,6 +16,7 @@ import {
 } from './application.entity.js';
 import { OrganizationEntity } from '../organizations/organization.entity.js';
 import { OrganizationMembershipEntity } from '../organizations/organization-membership.entity.js';
+import { OrganizationRepresentativeEntity } from '../organizations/organization-representative.entity.js';
 import { UserEntity } from '../identity/user.entity.js';
 import {
   FundingDirection,
@@ -62,6 +64,130 @@ export class ParticipationService {
   async submitApplication(
     input: ApplicationSubmission,
   ): Promise<ApplicationEntity> {
+    return this.createApplication(input, null);
+  }
+
+  async resubmitApplication(
+    previousApplicationId: string,
+    userId: string,
+    input: Pick<
+      ApplicationSubmission,
+      'proposal' | 'answers' | 'referencedProjectId'
+    >,
+  ): Promise<ApplicationEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const previous = await manager
+        .getRepository(ApplicationEntity)
+        .createQueryBuilder('application')
+        .setLock('pessimistic_write')
+        .where('application.id = :id', { id: previousApplicationId })
+        .getOne();
+      if (!previous) throw new NotFoundException('Application not found');
+      await this.assertApplicationActor(manager, previous, userId);
+      if (previous.status !== 'Withdrawn') {
+        throw new BadRequestException(
+          'Only withdrawn Applications can be resubmitted',
+        );
+      }
+      const existingResubmission = await manager
+        .getRepository(ApplicationEntity)
+        .findOneBy({
+          supersedesApplicationId: previous.id,
+        });
+      if (existingResubmission) {
+        throw new ConflictException('Application already has a resubmission');
+      }
+      const application = await this.createApplicationInTransaction(
+        manager,
+        {
+          ...input,
+          sourceType: previous.sourceType as PublicationSourceType,
+          sourceId: previous.sourceId,
+          applicantUserId: previous.applicantUserId ?? undefined,
+          applicantOrganizationId:
+            previous.applicantOrganizationId ?? undefined,
+        },
+        previous.id,
+      );
+      return application;
+    });
+  }
+
+  async withdrawApplication(
+    applicationId: string,
+    userId: string,
+  ): Promise<ApplicationEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const application = await manager
+        .getRepository(ApplicationEntity)
+        .createQueryBuilder('application')
+        .setLock('pessimistic_write')
+        .where('application.id = :id', { id: applicationId })
+        .getOne();
+      if (!application) throw new NotFoundException('Application not found');
+      await this.assertApplicationActor(manager, application, userId);
+      if (
+        ![
+          'Submitted',
+          'PendingFileScan',
+          'UnderReview',
+          'NeedsInformation',
+        ].includes(application.status)
+      ) {
+        throw new BadRequestException('Application can no longer be withdrawn');
+      }
+      application.status = 'Withdrawn';
+      application.withdrawnAt = new Date();
+      return manager.getRepository(ApplicationEntity).save(application);
+    });
+  }
+
+  private async assertApplicationActor(
+    manager: EntityManager,
+    application: ApplicationEntity,
+    userId: string,
+  ): Promise<void> {
+    if (application.applicantUserId === userId) return;
+    const organizationId = application.applicantOrganizationId;
+    if (!organizationId) throw new NotFoundException('Application not found');
+    const membership = await manager
+      .getRepository(OrganizationMembershipEntity)
+      .findOne({ where: { organizationId, userId, status: 'Active' } });
+    if (!membership) throw new NotFoundException('Application not found');
+    if (['Owner', 'Admin', 'ProjectManager'].includes(membership.role)) return;
+    if (membership.role === 'Representative') {
+      const authority = await manager
+        .getRepository(OrganizationRepresentativeEntity)
+        .findOne({ where: { organizationId, userId, revokedAt: IsNull() } });
+      if (
+        authority &&
+        authority.verifiedAt <= new Date() &&
+        authority.expiresAt > new Date()
+      ) {
+        return;
+      }
+    }
+    throw new NotFoundException('Application not found');
+  }
+
+  private async createApplication(
+    input: ApplicationSubmission,
+    supersedesApplicationId: string | null,
+  ): Promise<ApplicationEntity> {
+    return this.dataSource.transaction((manager) =>
+      this.createApplicationInTransaction(
+        manager,
+        input,
+        supersedesApplicationId,
+      ),
+    );
+  }
+
+  private async createApplicationInTransaction(
+    manager: EntityManager,
+    input: ApplicationSubmission,
+    supersedesApplicationId: string | null,
+  ): Promise<ApplicationEntity> {
     assertSubmissionDirection(
       FundingDirection.FundingOffered,
       SubmissionType.Application,
@@ -71,78 +197,80 @@ export class ParticipationService {
       input.applicantOrganizationId,
     );
 
-    return this.dataSource.transaction(async (manager) => {
-      const source = await this.lockSource(
-        manager,
-        input.sourceType,
-        input.sourceId,
-      );
-      this.assertIntake(source, FundingDirection.FundingOffered);
-      const applicant = await this.loadApplicant(manager, input);
-      this.assertEligibility(source.content, applicant);
-      const applicantKey = input.applicantOrganizationId
-        ? `organization:${input.applicantOrganizationId}`
-        : `user:${input.applicantUserId}`;
-      await this.assertApplicationQuota(
-        manager,
-        input,
+    const source = await this.lockSource(
+      manager,
+      input.sourceType,
+      input.sourceId,
+    );
+    this.assertIntake(source, FundingDirection.FundingOffered);
+    if (
+      supersedesApplicationId &&
+      source.content.opportunityPolicy?.allowReapply !== true
+    ) {
+      throw new BadRequestException('This source does not allow resubmission');
+    }
+    const applicant = await this.loadApplicant(manager, input);
+    this.assertEligibility(source.content, applicant);
+    const applicantKey = input.applicantOrganizationId
+      ? `organization:${input.applicantOrganizationId}`
+      : `user:${input.applicantUserId}`;
+    await this.assertApplicationQuota(
+      manager,
+      input,
+      applicantKey,
+      source.content.opportunityPolicy,
+    );
+    this.assertAnswers(
+      source.content.questionnaire?.questions ?? [],
+      input.answers,
+    );
+    if (input.referencedProjectId) {
+      const referenced = await manager
+        .getRepository(ProjectEntity)
+        .findOneBy({ id: input.referencedProjectId });
+      if (!referenced)
+        throw new BadRequestException('Referenced Project was not found');
+    }
+    const sourceVersion = await this.currentSourceVersion(
+      manager,
+      input.sourceType,
+      source.id,
+    );
+    const pendingFileScan = input.answers.some(
+      (answer) => answer.attachmentIds?.length,
+    );
+    const application = await manager.getRepository(ApplicationEntity).save(
+      manager.getRepository(ApplicationEntity).create({
+        sourceType: input.sourceType,
+        sourceId: source.id,
+        supersedesApplicationId,
+        applicantOrganizationId: input.applicantOrganizationId ?? null,
+        applicantUserId: input.applicantUserId ?? null,
         applicantKey,
-        source.content.opportunityPolicy,
-      );
-      this.assertAnswers(
-        source.content.questionnaire?.questions ?? [],
-        input.answers,
-      );
-      if (input.referencedProjectId) {
-        const referenced = await manager
-          .getRepository(ProjectEntity)
-          .findOneBy({
-            id: input.referencedProjectId,
-          });
-        if (!referenced)
-          throw new BadRequestException('Referenced Project was not found');
-      }
-
-      const sourceVersion = await this.currentSourceVersion(
-        manager,
-        input.sourceType,
-        source.id,
-      );
-      const pendingFileScan = input.answers.some(
-        (answer) => answer.attachmentIds?.length,
-      );
-      const application = await manager.getRepository(ApplicationEntity).save(
-        manager.getRepository(ApplicationEntity).create({
-          sourceType: input.sourceType,
-          sourceId: source.id,
-          applicantOrganizationId: input.applicantOrganizationId ?? null,
-          applicantUserId: input.applicantUserId ?? null,
-          applicantKey,
-          referencedProjectId: input.referencedProjectId ?? null,
-          sourceVersion,
-          sourceSnapshot: structuredClone(source.content),
-          applicantSnapshot: applicant,
-          proposalSnapshot: structuredClone(input.proposal),
-          status: pendingFileScan ? 'PendingFileScan' : 'Submitted',
-          receipt: randomUUID(),
+        referencedProjectId: input.referencedProjectId ?? null,
+        sourceVersion,
+        sourceSnapshot: structuredClone(source.content),
+        applicantSnapshot: applicant,
+        proposalSnapshot: structuredClone(input.proposal),
+        status: pendingFileScan ? 'PendingFileScan' : 'Submitted',
+        receipt: randomUUID(),
+      }),
+    );
+    const answerRepository = manager.getRepository(ApplicationAnswerEntity);
+    await answerRepository.save(
+      input.answers.map((answer) =>
+        answerRepository.create({
+          applicationId: application.id,
+          questionKey: answer.questionKey,
+          answer: structuredClone(answer.answer),
+          attachmentIds: answer.attachmentIds ?? [],
+          fileScanStatus: answer.attachmentIds?.length
+            ? 'Pending'
+            : 'NotRequired',
         }),
-      );
-      const answerRepository = manager.getRepository(ApplicationAnswerEntity);
-      await answerRepository.save(
-        input.answers.map((answer) =>
-          answerRepository.create({
-            applicationId: application.id,
-            questionKey: answer.questionKey,
-            answer: structuredClone(answer.answer),
-            attachmentIds: answer.attachmentIds ?? [],
-            fileScanStatus: answer.attachmentIds?.length
-              ? 'Pending'
-              : 'NotRequired',
-          }),
-        ),
-      );
-      return application;
-    });
+      ),
+    );
+    return application;
   }
 
   async submitFundingOffer(
