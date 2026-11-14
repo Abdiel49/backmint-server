@@ -4871,6 +4871,132 @@
         ]
       }
     },
+    "/api/applications/attachments/{attachmentId}/complete": {
+      "post": {
+        "description": "Checks object size and SHA-256 checksum. The attachment remains unavailable for review and pending malware scanning.",
+        "operationId": "ApplicationAttachmentController_completeUpload",
+        "parameters": [
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "example": "4e38df44-63d1-467a-90d4-bde6bce3e6db",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload verified; malware scanning is still pending.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "attachmentId": "4e38df44-63d1-467a-90d4-bde6bce3e6db",
+                    "status": "Uploaded"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Attachment identifier is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 400,
+                    "message": "Validation failed (uuid is expected)",
+                    "error": "Bad Request"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A valid bearer session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 401,
+                    "message": "A valid bearer session is required",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The uploader lacks active organization authority.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 403,
+                    "message": "Active applicant organization authority is required",
+                    "error": "Forbidden"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The attachment is not available to this uploader.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 404,
+                    "message": "Application attachment was not found",
+                    "error": "Not Found"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The object is missing or does not match its declared size and checksum.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 409,
+                    "message": "Uploaded application attachment does not match its declared size and SHA-256 checksum",
+                    "error": "Conflict"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Private object storage is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "statusCode": 503,
+                    "message": "Private object storage is unavailable for upload verification",
+                    "error": "Service Unavailable"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm a private Application attachment upload",
+        "tags": [
+          "Applications"
+        ]
+      }
+    },
     "/api/organizations/{organizationId}/verification": {
       "post": {
         "operationId": "VerificationController_createCase",

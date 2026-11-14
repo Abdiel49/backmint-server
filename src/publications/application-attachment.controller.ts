@@ -1,5 +1,5 @@
-import { BadRequestException, Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiForbiddenResponse, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiConflictResponse, ApiCreatedResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiServiceUnavailableResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { z } from 'zod';
 import { AuthSessionGuard, CurrentSession } from '../identity/auth-session.guard.js';
 import type { AuthenticatedSession } from '../identity/auth-session.service.js';
@@ -30,5 +30,20 @@ export class ApplicationAttachmentController {
     const result = uploadSchema.safeParse(body);
     if (!result.success) throw new BadRequestException('Application attachment payload is invalid');
     return this.attachments.createUpload(session.userId, result.data);
+  }
+
+  @Post(':attachmentId/complete')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Confirm a private Application attachment upload', description: 'Checks object size and SHA-256 checksum. The attachment remains unavailable for review and pending malware scanning.' })
+  @ApiParam({ name: 'attachmentId', format: 'uuid', example: '4e38df44-63d1-467a-90d4-bde6bce3e6db' })
+  @ApiOkResponse({ description: 'Upload verified; malware scanning is still pending.', schema: { example: { attachmentId: '4e38df44-63d1-467a-90d4-bde6bce3e6db', status: 'Uploaded' } } })
+  @ApiBadRequestResponse({ description: 'Attachment identifier is invalid.', schema: { example: { statusCode: 400, message: 'Validation failed (uuid is expected)', error: 'Bad Request' } } })
+  @ApiUnauthorizedResponse({ description: 'A valid bearer session is required.', schema: { example: { statusCode: 401, message: 'A valid bearer session is required', error: 'Unauthorized' } } })
+  @ApiForbiddenResponse({ description: 'The uploader lacks active organization authority.', schema: { example: { statusCode: 403, message: 'Active applicant organization authority is required', error: 'Forbidden' } } })
+  @ApiNotFoundResponse({ description: 'The attachment is not available to this uploader.', schema: { example: { statusCode: 404, message: 'Application attachment was not found', error: 'Not Found' } } })
+  @ApiConflictResponse({ description: 'The object is missing or does not match its declared size and checksum.', schema: { example: { statusCode: 409, message: 'Uploaded application attachment does not match its declared size and SHA-256 checksum', error: 'Conflict' } } })
+  @ApiServiceUnavailableResponse({ description: 'Private object storage is unavailable.', schema: { example: { statusCode: 503, message: 'Private object storage is unavailable for upload verification', error: 'Service Unavailable' } } })
+  completeUpload(@Param('attachmentId', ParseUUIDPipe) attachmentId: string, @CurrentSession() session: AuthenticatedSession) {
+    return this.attachments.completeUpload(session.userId, attachmentId);
   }
 }

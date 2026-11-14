@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { DataSource, IsNull } from 'typeorm';
 import { malwareScanConfig } from '../config/configuration.js';
@@ -34,5 +34,41 @@ export class ApplicationAttachmentService {
     const repository = this.dataSource.getRepository(ApplicationAttachmentEntity);
     const attachment = await repository.save(repository.create({ uploadedByUserId: actorUserId, organizationId: input.organizationId ?? null, storageKey: signed.key, mimeType: input.mimeType, sizeBytes: String(input.sizeBytes), checksumSha256: input.checksumSha256, status: 'PendingUpload' }));
     return { attachmentId: attachment.id, status: attachment.status, uploadUrl: signed.url, expiresAt: signed.expiresAt, requiredHeaders: { 'content-type': input.mimeType, 'x-amz-checksum-sha256': checksumBase64 } };
+  }
+
+  async completeUpload(actorUserId: string, attachmentId: string) {
+    return this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(ApplicationAttachmentEntity);
+      const attachment = await repository.findOne({ where: { id: attachmentId, uploadedByUserId: actorUserId }, lock: { mode: 'pessimistic_write' } });
+      if (!attachment) throw new NotFoundException('Application attachment was not found');
+      if (attachment.organizationId) {
+        const organization = await manager.getRepository(OrganizationEntity).findOneBy({ id: attachment.organizationId, status: 'Active' });
+        const membership = await manager.getRepository(OrganizationMembershipEntity).findOneBy({ organizationId: attachment.organizationId, userId: actorUserId, status: 'Active' });
+        let permitted = Boolean(organization && membership && ['Owner', 'Admin', 'ProjectManager'].includes(membership.role));
+        if (organization && membership?.role === 'Representative') {
+          const authority = await manager.getRepository(OrganizationRepresentativeEntity).findOneBy({ organizationId: attachment.organizationId, userId: actorUserId, revokedAt: IsNull() });
+          permitted = Boolean(authority && authority.verifiedAt <= new Date() && authority.expiresAt > new Date());
+        }
+        if (!permitted) throw new ForbiddenException('Active applicant organization authority is required');
+      }
+      if (attachment.status === 'Uploaded') return { attachmentId: attachment.id, status: attachment.status };
+      if (attachment.status !== 'PendingUpload') throw new ConflictException('Application attachment is not awaiting upload');
+      const scope = `applications/uploads/${attachment.organizationId ?? attachment.uploadedByUserId}/${attachment.uploadedByUserId}`;
+      let stored;
+      try {
+        stored = await this.storage.headObject(attachment.storageKey, scope);
+      } catch (error) {
+        const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+        const name = (error as { name?: string }).name;
+        if (status === 404 || name === 'NotFound' || name === 'NoSuchKey') throw new ConflictException('Uploaded application attachment was not found');
+        throw new ServiceUnavailableException('Private object storage is unavailable for upload verification');
+      }
+      const checksum = Buffer.from(attachment.checksumSha256, 'hex').toString('base64');
+      if (stored.contentLength !== Number(attachment.sizeBytes) || stored.checksumSha256 !== checksum || stored.metadataChecksumSha256 !== checksum)
+        throw new ConflictException('Uploaded application attachment does not match its declared size and SHA-256 checksum');
+      attachment.status = 'Uploaded';
+      await repository.save(attachment);
+      return { attachmentId: attachment.id, status: attachment.status };
+    });
   }
 }
