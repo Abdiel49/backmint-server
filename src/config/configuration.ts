@@ -11,6 +11,7 @@ const environmentSchema = z.object({
   RATE_LIMIT_TTL_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
+  SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(2_592_000).default(604_800),
   UPLOAD_RATE_LIMIT_MAX_REQUESTS: z.coerce
     .number()
     .int()
@@ -133,6 +134,7 @@ export const appConfig = registerAs('app', () => {
     rateLimitMaxRequests: environment.RATE_LIMIT_MAX_REQUESTS,
     authenticationRateLimitMaxRequests:
       environment.AUTH_RATE_LIMIT_MAX_REQUESTS,
+    sessionTtlSeconds: environment.SESSION_TTL_SECONDS,
     uploadRateLimitMaxRequests: environment.UPLOAD_RATE_LIMIT_MAX_REQUESTS,
     financialRateLimitMaxRequests:
       environment.FINANCIAL_RATE_LIMIT_MAX_REQUESTS,
